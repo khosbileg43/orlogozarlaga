@@ -1,4 +1,4 @@
-npm i @prisma/client"
+npm i @prisma/client
 ".env" gdg file uusgene
 dotor ni DATABASE_URL="postgresql://postgres:postgres@localhost:5432/orlogozarlaga-postgres"
 
