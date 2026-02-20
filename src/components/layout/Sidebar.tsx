@@ -1,3 +1,4 @@
+import { SquareUserRound } from "lucide-react";
 import React from "react";
 
 const Sidebar = () => {
@@ -23,8 +24,8 @@ const Sidebar = () => {
           <p>Settings</p>
         </div>
       </div>
-      <div className="flex bg-transparent rounded-lg border border-[#F1F3F2] p-2 gap-3 items-center w-full">
-        <div className="bg-transparent rounded-[5px] border border-[#F1F3F2] flex w-7 h-7"></div>
+      <div className="flex bg-transparent rounded-lg border border-[#F1F3F2] p-2 gap-1 items-center w-full">
+        <SquareUserRound size={30} />
         <p>Username</p>
       </div>
     </div>
