@@ -1,8 +1,18 @@
 import { prisma } from "@/lib/db/prisma";
 import { Prisma } from "@prisma/client";
 
+const transactionSelect = {
+  id: true,
+  type: true,
+  category: true,
+  amount: true,
+  description: true,
+  date: true,
+  accountId: true,
+} as const;
+
 export const transactionRepo = {
-  list(args: {
+  findManyByUserId(args: {
     userId: string;
     start: Date;
     end: Date;
@@ -15,15 +25,25 @@ export const transactionRepo = {
         ...(args.type ? { type: args.type } : {}),
       },
       orderBy: { date: "desc" },
-      select: {
-        id: true,
-        type: true,
-        category: true,
-        amount: true,
-        description: true,
-        date: true,
-        accountId: true,
-      },
+      select: transactionSelect,
+    });
+  },
+
+  findByIdAndUserId(transactionId: string, userId: string) {
+    return prisma.transaction.findFirst({
+      where: { id: transactionId, userId },
+      select: transactionSelect,
+    });
+  },
+
+  findByIdAndUserIdTx(
+    tx: Prisma.TransactionClient,
+    transactionId: string,
+    userId: string,
+  ) {
+    return tx.transaction.findFirst({
+      where: { id: transactionId, userId },
+      select: transactionSelect,
     });
   },
 
@@ -41,15 +61,39 @@ export const transactionRepo = {
   ) {
     return tx.transaction.create({
       data,
-      select: {
-        id: true,
-        type: true,
-        category: true,
-        amount: true,
-        description: true,
-        date: true,
-        accountId: true,
-      },
+      select: transactionSelect,
+    });
+  },
+
+  updateByIdAndUserIdTx(
+    tx: Prisma.TransactionClient,
+    args: {
+      id: string;
+      userId: string;
+      data: {
+        category?: string;
+        description?: string | null;
+        date?: Date;
+      };
+    },
+  ) {
+    return tx.transaction.update({
+      where: { id: args.id },
+      data: args.data,
+      select: transactionSelect,
+    });
+  },
+
+  deleteByIdAndUserIdTx(
+    tx: Prisma.TransactionClient,
+    args: {
+      id: string;
+      userId: string;
+    },
+  ) {
+    return tx.transaction.delete({
+      where: { id: args.id },
+      select: transactionSelect,
     });
   },
 };
