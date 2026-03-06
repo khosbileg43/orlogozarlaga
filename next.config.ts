@@ -1,12 +1,14 @@
-const repo = process.env.GITHUB_REPOSITORY?.split("/")[1] || "";
+const rawRepo = process.env.GITHUB_REPOSITORY?.split("/")[1] || "";
+const repo =
+  /^[A-Za-z0-9._-]+$/.test(rawRepo) && rawRepo !== "." && rawRepo !== ".."
+    ? rawRepo
+    : "";
 const isProd = process.env.NODE_ENV === "production";
 
 module.exports = {
-  output: "export",
-  // GitHub Pages дээр “folder” доор serve хийдэг тул:
-  basePath: isProd ? `/${repo}` : "",
-  assetPrefix: isProd ? `/${repo}/` : "",
+  // Keep API routes enabled for basic full-stack deployment.
+  basePath: isProd && repo ? `/${repo}` : "",
+  assetPrefix: isProd && repo ? `/${repo}/` : "",
   trailingSlash: true,
-  // next/image ашиглаж байвал Pages дээр default image optimization ажиллахгүй тул:
-  images: { unoptimized: true },
+  images: { unoptimized: isProd && Boolean(repo) },
 };
