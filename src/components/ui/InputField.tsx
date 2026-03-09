@@ -13,13 +13,18 @@ const InputField: React.FC<InputFieldProps> = ({
   label,
   type,
   placeholder,
-  wrapperClassName = "bg-[#D7E8D9] w-full p-2 rounded-lg flex flex-col",
-  inputClassName = "rounded px-2 py-1 border-none appearance-none outline-none",
+  wrapperClassName = "w-full rounded-xl border border-[#d4e3d9] bg-[#f4faf6] p-2.5",
+  inputClassName = "mt-1 rounded-lg w-full border border-[#d5e3da] bg-white px-2.5 py-2 outline-none focus:border-[#65a48b]",
   alignEnd = false,
 }) => {
   return (
     <div className={wrapperClassName}>
-      <p className={alignEnd ? "w-full" : ""}>{label}</p>
+      <p
+        className={`text-xs font-medium uppercase tracking-[0.12em] text-[#4f665c] ${
+          alignEnd ? "w-full" : ""
+        }`}>
+        {label}
+      </p>
       <input
         type={type}
         placeholder={placeholder}
