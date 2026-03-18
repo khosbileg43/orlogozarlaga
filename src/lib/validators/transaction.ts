@@ -1,7 +1,9 @@
 export {
   createTransactionSchema,
+  limitSchema,
   listTransactionsQuerySchema,
   monthSchema,
+  pageSchema,
   transactionIdParamSchema,
   transactionTypeSchema,
   updateTransactionSchema,

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { auth0 } from "@/lib/auth/auth0";
+import { SESSION_COOKIE_NAME } from "@/lib/auth/constants";
+import { logger } from "@/utils/logger";
 
 const protectedPrefixes = [
   "/pocketDashboard",
@@ -16,8 +17,8 @@ function isProtectedPath(pathname: string) {
   );
 }
 
-export async function middleware(request: NextRequest) {
-  const authResponse = await auth0.middleware(request);
+export async function proxy(request: NextRequest) {
+  const startedAt = Date.now();
   const pathname = request.nextUrl.pathname;
 
   // Public auth endpoints must remain accessible without session.
@@ -27,21 +28,37 @@ export async function middleware(request: NextRequest) {
     pathname === "/api/auth/forgot-pass" ||
     pathname === "/api/auth/logout"
   ) {
-    return authResponse;
+    logger.info("proxy.pass.publicAuth", {
+      path: pathname,
+      durationMs: Date.now() - startedAt,
+    });
+    return NextResponse.next();
   }
 
   if (!isProtectedPath(pathname)) {
-    return authResponse;
+    logger.info("proxy.pass.public", {
+      path: pathname,
+      durationMs: Date.now() - startedAt,
+    });
+    return NextResponse.next();
   }
 
-  const session = await auth0.getSession(request);
-  if (!session) {
+  const hasSessionCookie = Boolean(request.cookies.get(SESSION_COOKIE_NAME)?.value);
+  if (!hasSessionCookie) {
     const loginUrl = new URL("/login", request.nextUrl.origin);
     loginUrl.searchParams.set("returnTo", request.nextUrl.pathname);
+    logger.warn("proxy.redirect.unauthorized", {
+      path: pathname,
+      durationMs: Date.now() - startedAt,
+    });
     return NextResponse.redirect(loginUrl);
   }
 
-  return authResponse;
+  logger.info("proxy.pass.protected", {
+    path: pathname,
+    durationMs: Date.now() - startedAt,
+  });
+  return NextResponse.next();
 }
 
 export const config = {

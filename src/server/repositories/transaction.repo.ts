@@ -17,6 +17,8 @@ export const transactionRepo = {
     userId: string;
     start: Date;
     end: Date;
+    offset: number;
+    limit: number;
     type?: "INCOME" | "EXPENSE" | "TRANSFER";
   }) {
     return prisma.transaction.findMany({
@@ -26,6 +28,8 @@ export const transactionRepo = {
         ...(args.type ? { type: args.type } : {}),
       },
       orderBy: { date: "desc" },
+      skip: args.offset,
+      take: args.limit,
       select: transactionSelect,
     });
   },

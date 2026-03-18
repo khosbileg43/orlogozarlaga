@@ -1,15 +1,18 @@
 import { transactionsController } from "@/controllers/transactions.controller";
+import { withObservedRequest } from "@/utils/observability";
 
 type TransactionRouteContext = {
   params: Promise<{ transactionId: string }>;
 };
 
 export async function GET(
-  _req: Request,
+  req: Request,
   context: TransactionRouteContext,
 ) {
   const { transactionId } = await context.params;
-  return transactionsController.getById(transactionId);
+  return withObservedRequest("api.transactions.getById", req, () =>
+    transactionsController.getById(transactionId),
+  );
 }
 
 export async function PATCH(
@@ -17,13 +20,17 @@ export async function PATCH(
   context: TransactionRouteContext,
 ) {
   const { transactionId } = await context.params;
-  return transactionsController.update(req, transactionId);
+  return withObservedRequest("api.transactions.update", req, () =>
+    transactionsController.update(req, transactionId),
+  );
 }
 
 export async function DELETE(
-  _req: Request,
+  req: Request,
   context: TransactionRouteContext,
 ) {
   const { transactionId } = await context.params;
-  return transactionsController.remove(transactionId);
+  return withObservedRequest("api.transactions.delete", req, () =>
+    transactionsController.remove(transactionId),
+  );
 }

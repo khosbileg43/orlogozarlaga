@@ -37,6 +37,26 @@ describe("transactionService", () => {
     ).toThrow("Invalid transaction type");
   });
 
+  it("applies pagination when listing transactions", async () => {
+    (transactionRepo.findManyByUserId as jest.Mock).mockResolvedValue([]);
+
+    await transactionService.list({
+      userId: "u1",
+      start: new Date("2026-03-01T00:00:00.000Z"),
+      end: new Date("2026-04-01T00:00:00.000Z"),
+      page: 2,
+      limit: 25,
+    });
+
+    expect(transactionRepo.findManyByUserId).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: "u1",
+        offset: 25,
+        limit: 25,
+      }),
+    );
+  });
+
   it("creates expense transaction and decreases balance atomically", async () => {
     const tx = {} as never;
     const created = {

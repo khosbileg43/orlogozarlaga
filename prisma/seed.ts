@@ -1,5 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
+import { scryptSync } from "node:crypto";
 
 const connectionString = process.env.DATABASE_URL;
 
@@ -9,13 +10,21 @@ if (!connectionString) {
 
 const adapter = new PrismaPg({ connectionString });
 const prisma = new PrismaClient({ adapter });
+const demoPassword = "123456";
+
+function createPasswordHash(password: string) {
+  const salt = "orlogozarlaga-demo-salt";
+  const hash = scryptSync(password, salt, 64).toString("hex");
+  return `${salt}:${hash}`;
+}
 
 async function main() {
   // Demo user (use same email always so re-seeding is safe)
+  const passwordHash = createPasswordHash(demoPassword);
   const user = await prisma.user.upsert({
     where: { email: "demo@user.com" },
-    update: {},
-    create: { email: "demo@user.com", name: "Demo User" },
+    update: { passwordHash },
+    create: { email: "demo@user.com", name: "Demo User", passwordHash },
   });
 
   // Create accounts (Cash / Yuuchou / Mongol Bank)
@@ -80,7 +89,10 @@ async function main() {
     skipDuplicates: true,
   });
 
-  console.log("Seeded ✅", { userId: user.id });
+  console.log("Seeded ✅", {
+    userId: user.id,
+    demoLogin: { email: "demo@user.com", password: demoPassword },
+  });
 }
 
 main()

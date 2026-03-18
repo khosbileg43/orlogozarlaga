@@ -15,6 +15,8 @@ export const transactionService = {
     start: Date;
     end: Date;
     type?: string | null;
+    page?: number;
+    limit?: number;
   }) {
     const normalizedType =
       args.type && isTransactionType(args.type) ? args.type : undefined;
@@ -25,10 +27,16 @@ export const transactionService = {
       );
     }
 
+    const page = args.page ?? 1;
+    const limit = args.limit ?? 50;
+    const offset = (page - 1) * limit;
+
     return transactionRepo.findManyByUserId({
       userId: args.userId,
       start: args.start,
       end: args.end,
+      offset,
+      limit,
       ...(normalizedType ? { type: normalizedType } : {}),
     });
   },

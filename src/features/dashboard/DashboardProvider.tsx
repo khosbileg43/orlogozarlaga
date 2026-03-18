@@ -107,9 +107,12 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
         fetch(`/api/summary?month=${encodeURIComponent(monthValue)}`, {
           cache: "no-store",
         }),
-        fetch(`/api/transactions?month=${encodeURIComponent(monthValue)}`, {
+        fetch(
+          `/api/transactions?month=${encodeURIComponent(monthValue)}&page=1&limit=200`,
+          {
           cache: "no-store",
-        }),
+          },
+        ),
       ]);
 
       const [summaryData, txData] = await Promise.all([

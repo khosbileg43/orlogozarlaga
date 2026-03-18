@@ -1,54 +1,69 @@
 import { prisma } from "@/lib/db/prisma";
+import { verifyPassword } from "@/lib/auth/password";
 import { setSessionCookie } from "@/lib/auth/auth0";
 import { ok, fail } from "@/utils/api-response";
 import { UnauthorizedError, ValidationAppError } from "@/utils/errors";
+import { withObservedRequest } from "@/utils/observability";
 
 export async function POST(req: Request) {
-  try {
-    const body = (await req.json()) as {
-      email?: string;
-      password?: string;
-    };
+  return withObservedRequest("api.auth.login", req, async () => {
+    try {
+      const body = (await req.json()) as {
+        email?: string;
+        password?: string;
+      };
 
-    const email = body.email?.trim().toLowerCase() ?? "";
-    const password = body.password ?? "";
+      const email = body.email?.trim().toLowerCase() ?? "";
+      const password = body.password ?? "";
 
-    if (!email || !email.includes("@")) {
-      throw new ValidationAppError("Valid email is required");
-    }
+      if (!email || !email.includes("@")) {
+        throw new ValidationAppError("Valid email is required");
+      }
 
-    if (!password || password.length < 6) {
-      throw new ValidationAppError("Password must be at least 6 characters");
-    }
+      if (!password || password.length < 6) {
+        throw new ValidationAppError("Password must be at least 6 characters");
+      }
 
-    const user = await prisma.user.findUnique({
-      where: { email },
-      select: { id: true, email: true, name: true, auth0Id: true },
-    });
-
-    if (!user) {
-      throw new UnauthorizedError("Invalid email or password");
-    }
-
-    const response = ok(
-      {
-        user: {
-          id: user.id,
-          email: user.email,
-          name: user.name,
+      const user = await prisma.user.findUnique({
+        where: { email },
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          auth0Id: true,
+          passwordHash: true,
         },
-      },
-      200,
-    );
+      });
 
-    return setSessionCookie(response, {
-      user: {
-        sub: user.auth0Id ?? `local:${user.id}`,
-        email: user.email,
-        name: user.name ?? user.email,
-      },
-    });
-  } catch (error) {
-    return fail(error);
-  }
+      if (!user || !user.passwordHash) {
+        throw new UnauthorizedError("Invalid email or password");
+      }
+
+      const passwordMatched = verifyPassword(password, user.passwordHash);
+      if (!passwordMatched) {
+        throw new UnauthorizedError("Invalid email or password");
+      }
+
+      const response = ok(
+        {
+          user: {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+          },
+        },
+        200,
+      );
+
+      return setSessionCookie(response, {
+        user: {
+          sub: user.auth0Id ?? `local:${user.id}`,
+          email: user.email,
+          name: user.name ?? user.email,
+        },
+      });
+    } catch (error) {
+      return fail(error);
+    }
+  });
 }

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { SquareUserRound } from "lucide-react";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 
 const navLinks = [
   { name: "My Pocket", href: "/pocketDashboard" },
@@ -16,6 +16,36 @@ export default function OzLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const [loggingOut, setLoggingOut] = useState(false);
+  const [displayName, setDisplayName] = useState("User");
+
+  useEffect(() => {
+    let mounted = true;
+
+    const loadCurrentUser = async () => {
+      try {
+        const response = await fetch("/api/auth/me", { cache: "no-store" });
+        const payload = (await response.json()) as {
+          success: boolean;
+          data?: { user?: { name?: string | null; email?: string | null } };
+        };
+
+        if (!mounted || !response.ok || !payload.success) return;
+        const name =
+          payload.data?.user?.name?.trim() ||
+          payload.data?.user?.email ||
+          "User";
+        setDisplayName(name);
+      } catch {
+        if (mounted) setDisplayName("User");
+      }
+    };
+
+    void loadCurrentUser();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const onLogout = async () => {
     try {
@@ -62,10 +92,12 @@ export default function OzLayout({ children }: { children: React.ReactNode }) {
           </div>
 
           <div className="mt-6 flex items-center gap-3 justify-between rounded-2xl border border-[#cfe0d6] bg-white/70 px-3 py-2.5">
-            <SquareUserRound size={28} className="text-[#2e5e54]" />
-            <p className="truncate text-sm font-medium text-[#25453b]">
-              Demo User
-            </p>
+            <div className="flex items-center gap-3">
+              <SquareUserRound size={28} className="text-[#2e5e54]" />
+              <p className="truncate text-sm font-medium text-[#25453b]">
+                {displayName}
+              </p>
+            </div>
             <button
               type="button"
               onClick={onLogout}

@@ -14,6 +14,8 @@ function parseSearchParams(url: string) {
   return listTransactionsQuerySchema.parse({
     month: searchParams.get("month") ?? undefined,
     type: searchParams.get("type") ?? undefined,
+    page: searchParams.get("page") ?? undefined,
+    limit: searchParams.get("limit") ?? undefined,
   });
 }
 
@@ -23,6 +25,8 @@ export const transactionsController = {
       const user = await authService.requireAuthenticatedUser();
       const query = parseSearchParams(req.url);
       const month = query.month ?? new Date().toISOString().slice(0, 7);
+      const page = query.page ?? 1;
+      const limit = query.limit ?? 50;
       const { start, end } = getMonthRange(month);
 
       const transactions = await transactionService.list({
@@ -30,9 +34,19 @@ export const transactionsController = {
         start,
         end,
         type: query.type,
+        page,
+        limit,
       });
 
-      return ok({ transactions });
+      return ok({
+        transactions,
+        pagination: {
+          page,
+          limit,
+          count: transactions.length,
+          hasMore: transactions.length === limit,
+        },
+      });
     } catch (error) {
       return fail(error);
     }

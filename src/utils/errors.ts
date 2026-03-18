@@ -33,7 +33,7 @@ export class NotFoundError extends AppError {
 
 export class ValidationAppError extends AppError {
   constructor(message = "Validation failed", details?: unknown) {
-    super(400, message, "VALIDATION_ERROR", details);
+    super(422, message, "VALIDATION_ERROR", details);
   }
 }
 
@@ -46,6 +46,18 @@ export function normalizeError(error: unknown): AppError {
     return new ValidationAppError("Validation failed", error.flatten());
   }
 
+  if (error instanceof Prisma.PrismaClientValidationError) {
+    return new AppError(400, "Invalid database request payload", "DB_VALIDATION_ERROR");
+  }
+
+  if (error instanceof Prisma.PrismaClientInitializationError) {
+    return new AppError(500, "Database connection is unavailable", "DB_UNAVAILABLE");
+  }
+
+  if (error instanceof Prisma.PrismaClientRustPanicError) {
+    return new AppError(500, "Database engine error", "DB_ENGINE_ERROR");
+  }
+
   if (error instanceof Prisma.PrismaClientKnownRequestError) {
     if (error.code === "P2002") {
       return new AppError(409, "A record with this data already exists", "CONFLICT");
@@ -55,7 +67,7 @@ export function normalizeError(error: unknown): AppError {
   }
 
   if (error instanceof Error) {
-    return new AppError(500, error.message || "Internal server error", "INTERNAL_ERROR");
+    return new AppError(500, "Internal server error", "INTERNAL_ERROR");
   }
 
   return new AppError(500, "Internal server error", "INTERNAL_ERROR");
