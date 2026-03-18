@@ -18,14 +18,25 @@ function isProtectedPath(pathname: string) {
 
 export async function middleware(request: NextRequest) {
   const authResponse = await auth0.middleware(request);
+  const pathname = request.nextUrl.pathname;
 
-  if (!isProtectedPath(request.nextUrl.pathname)) {
+  // Public auth endpoints must remain accessible without session.
+  if (
+    pathname === "/api/auth/login" ||
+    pathname === "/api/auth/signup" ||
+    pathname === "/api/auth/forgot-pass" ||
+    pathname === "/api/auth/logout"
+  ) {
+    return authResponse;
+  }
+
+  if (!isProtectedPath(pathname)) {
     return authResponse;
   }
 
   const session = await auth0.getSession(request);
   if (!session) {
-    const loginUrl = new URL("/auth/login", request.nextUrl.origin);
+    const loginUrl = new URL("/login", request.nextUrl.origin);
     loginUrl.searchParams.set("returnTo", request.nextUrl.pathname);
     return NextResponse.redirect(loginUrl);
   }
