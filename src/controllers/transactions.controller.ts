@@ -46,6 +46,7 @@ export const transactionsController = {
 
       const created = await transactionService.create(user.id, {
         accountId: parsed.accountId,
+        toAccountId: parsed.toAccountId,
         type: parsed.type,
         category: parsed.category,
         amount: parsed.amount,

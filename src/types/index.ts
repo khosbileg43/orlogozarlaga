@@ -12,11 +12,12 @@ export type AuthenticatedUser = {
   name: string | null;
 };
 
-export type TransactionType = "INCOME" | "EXPENSE";
+export type TransactionType = "INCOME" | "EXPENSE" | "TRANSFER";
 
 export type TransactionDto = {
   id: string;
   accountId: string;
+  toAccountId: string | null;
   type: TransactionType;
   category: string;
   amount: number;

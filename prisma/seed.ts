@@ -66,6 +66,16 @@ async function main() {
         description: "Transportation",
         date: new Date("2026-02-16"),
       },
+      {
+        userId: user.id,
+        accountId: accounts[0].id,
+        toAccountId: accounts[1].id,
+        type: "TRANSFER",
+        category: "Between accounts",
+        amount: 50_000,
+        description: "Move to Yuuchou",
+        date: new Date("2026-02-17"),
+      },
     ],
     skipDuplicates: true,
   });

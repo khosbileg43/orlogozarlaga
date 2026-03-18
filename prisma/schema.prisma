@@ -9,6 +9,7 @@ generator client {
 enum TransactionType {
   INCOME
   EXPENSE
+  TRANSFER
 }
 
 model User {
@@ -22,13 +23,14 @@ model User {
 }
 
 model Account {
-  id        String        @id @default(cuid())
-  userId    String
-  name      String
-  balance   Int           @default(0)
-  user      User          @relation(fields: [userId], references: [id])
-  txns      Transaction[]
-  createdAt DateTime      @default(now())
+  id                String        @id @default(cuid())
+  userId            String
+  name              String
+  balance           Int           @default(0)
+  user              User          @relation(fields: [userId], references: [id])
+  txns              Transaction[] @relation("SourceAccountTransactions")
+  incomingTransfers Transaction[] @relation("DestinationAccountTransactions")
+  createdAt         DateTime      @default(now())
 
   @@index([userId])
 }
@@ -37,17 +39,20 @@ model Transaction {
   id          String          @id @default(cuid())
   userId      String
   accountId   String
+  toAccountId String?
   type        TransactionType
   category    String
   amount      Int
   description String?
   date        DateTime
 
-  user        User            @relation(fields: [userId], references: [id])
-  account     Account         @relation(fields: [accountId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
+  account   Account  @relation("SourceAccountTransactions", fields: [accountId], references: [id])
+  toAccount Account? @relation("DestinationAccountTransactions", fields: [toAccountId], references: [id])
 
-  createdAt   DateTime        @default(now())
+  createdAt DateTime @default(now())
 
   @@index([userId, date])
   @@index([accountId, date])
+  @@index([toAccountId, date])
 }

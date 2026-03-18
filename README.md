@@ -9,7 +9,7 @@ npm install
 2. Configure `.env`:
 
 ```env
-DATABASE_URL="postgresql://postgres:postgres@localhost:5432/orlogozarlaga"
+DATABASE_URL="postgresql://postgres:postgres@localhost:5433/orlogozarlaga"
 
 AUTH0_DOMAIN="your-tenant.us.auth0.com"
 AUTH0_CLIENT_ID="your-client-id"
@@ -24,7 +24,7 @@ APP_BASE_URL="http://localhost:3000"
 docker run --name orlogozarlaga-postgres \
   -e POSTGRES_PASSWORD=postgres \
   -e POSTGRES_DB=orlogozarlaga \
-  -p 5432:5432 \
+  -p 5433:5432 \
   -d postgres:16
 ```
 

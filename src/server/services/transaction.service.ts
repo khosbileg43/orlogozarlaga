@@ -3,8 +3,10 @@ import { NotFoundError, ValidationAppError } from "@/utils/errors";
 import { accountRepo } from "../repositories/account.repo";
 import { transactionRepo } from "../repositories/transaction.repo";
 
-function isTransactionType(value: string): value is "INCOME" | "EXPENSE" {
-  return value === "INCOME" || value === "EXPENSE";
+function isTransactionType(
+  value: string,
+): value is "INCOME" | "EXPENSE" | "TRANSFER" {
+  return value === "INCOME" || value === "EXPENSE" || value === "TRANSFER";
 }
 
 export const transactionService = {
@@ -19,7 +21,7 @@ export const transactionService = {
 
     if (args.type && !normalizedType) {
       throw new ValidationAppError(
-        "Invalid transaction type. Use INCOME or EXPENSE",
+        "Invalid transaction type. Use INCOME, EXPENSE, or TRANSFER",
       );
     }
 
@@ -46,17 +48,66 @@ export const transactionService = {
     userId: string,
     input: {
       accountId: string;
-      type: "INCOME" | "EXPENSE";
+      toAccountId?: string;
+      type: "INCOME" | "EXPENSE" | "TRANSFER";
       category: string;
       amount: number;
       description?: string;
       date: Date;
     },
   ) {
+    if (input.type === "TRANSFER") {
+      const destinationAccountId = input.toAccountId;
+      if (!destinationAccountId) {
+        throw new ValidationAppError("toAccountId is required for TRANSFER");
+      }
+      if (destinationAccountId === input.accountId) {
+        throw new ValidationAppError(
+          "Source and destination account must be different",
+        );
+      }
+
+      return prisma.$transaction(async (tx) => {
+        const sourceUpdated = await accountRepo.incrementBalanceIfOwnedTx(tx, {
+          accountId: input.accountId,
+          userId,
+          by: -input.amount,
+        });
+
+        if (sourceUpdated.count === 0) {
+          throw new NotFoundError("Source account not found");
+        }
+
+        const destinationUpdated = await accountRepo.incrementBalanceIfOwnedTx(
+          tx,
+          {
+            accountId: destinationAccountId,
+            userId,
+            by: input.amount,
+          },
+        );
+
+        if (destinationUpdated.count === 0) {
+          throw new NotFoundError("Destination account not found");
+        }
+
+        return transactionRepo.createTx(tx, {
+          userId,
+          accountId: input.accountId,
+          toAccountId: destinationAccountId,
+          type: input.type,
+          category: input.category,
+          amount: input.amount,
+          description: input.description,
+          date: input.date,
+        });
+      });
+    }
+
     const balanceDelta = input.type === "INCOME" ? input.amount : -input.amount;
 
     // IMPORTANT: both create transaction + update balance must be atomic
-    const created = await prisma.$transaction(async (tx) => {
+    return prisma.$transaction(async (tx) => {
       const updated = await accountRepo.incrementBalanceIfOwnedTx(tx, {
         accountId: input.accountId,
         userId,
@@ -77,8 +128,6 @@ export const transactionService = {
         date: input.date,
       });
     });
-
-    return created;
   },
 
   async update(
@@ -125,6 +174,42 @@ export const transactionService = {
 
       if (!existing) {
         throw new NotFoundError("Transaction not found");
+      }
+
+      if (existing.type === "TRANSFER") {
+        if (!existing.toAccountId) {
+          throw new ValidationAppError(
+            "Transfer transaction has no destination account",
+          );
+        }
+
+        const sourceRollback = await accountRepo.incrementBalanceIfOwnedTx(tx, {
+          accountId: existing.accountId,
+          userId,
+          by: existing.amount,
+        });
+
+        if (sourceRollback.count === 0) {
+          throw new NotFoundError("Source account not found");
+        }
+
+        const destinationRollback = await accountRepo.incrementBalanceIfOwnedTx(
+          tx,
+          {
+            accountId: existing.toAccountId,
+            userId,
+            by: -existing.amount,
+          },
+        );
+
+        if (destinationRollback.count === 0) {
+          throw new NotFoundError("Destination account not found");
+        }
+
+        return transactionRepo.deleteByIdAndUserIdTx(tx, {
+          id: transactionId,
+          userId,
+        });
       }
 
       const rollbackDelta =

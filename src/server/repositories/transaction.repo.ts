@@ -9,6 +9,7 @@ const transactionSelect = {
   description: true,
   date: true,
   accountId: true,
+  toAccountId: true,
 } as const;
 
 export const transactionRepo = {
@@ -16,7 +17,7 @@ export const transactionRepo = {
     userId: string;
     start: Date;
     end: Date;
-    type?: "INCOME" | "EXPENSE";
+    type?: "INCOME" | "EXPENSE" | "TRANSFER";
   }) {
     return prisma.transaction.findMany({
       where: {
@@ -52,7 +53,8 @@ export const transactionRepo = {
     data: {
       userId: string;
       accountId: string;
-      type: "INCOME" | "EXPENSE";
+      toAccountId?: string;
+      type: "INCOME" | "EXPENSE" | "TRANSFER";
       category: string;
       amount: number;
       description?: string;

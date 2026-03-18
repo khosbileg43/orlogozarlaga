@@ -90,4 +90,69 @@ describe("transactionService", () => {
       }),
     ).rejects.toThrow("Account not found");
   });
+
+  it("creates transfer transaction and updates both balances atomically", async () => {
+    const tx = {} as never;
+    const created = {
+      id: "t2",
+      type: "TRANSFER",
+      category: "Between accounts",
+      amount: 1200,
+      description: "Move to savings",
+      date: new Date("2026-03-03T10:00:00.000Z"),
+      accountId: "a1",
+      toAccountId: "a2",
+    };
+
+    (prisma.$transaction as jest.Mock).mockImplementation(async (fn) => fn(tx));
+    (accountRepo.incrementBalanceIfOwnedTx as jest.Mock)
+      .mockResolvedValueOnce({ count: 1 })
+      .mockResolvedValueOnce({ count: 1 });
+    (transactionRepo.createTx as jest.Mock).mockResolvedValue(created);
+
+    const result = await transactionService.create("u1", {
+      accountId: "a1",
+      toAccountId: "a2",
+      type: "TRANSFER",
+      category: "Between accounts",
+      amount: 1200,
+      description: "Move to savings",
+      date: new Date("2026-03-03T10:00:00.000Z"),
+    });
+
+    expect(accountRepo.incrementBalanceIfOwnedTx).toHaveBeenNthCalledWith(1, tx, {
+      accountId: "a1",
+      userId: "u1",
+      by: -1200,
+    });
+    expect(accountRepo.incrementBalanceIfOwnedTx).toHaveBeenNthCalledWith(2, tx, {
+      accountId: "a2",
+      userId: "u1",
+      by: 1200,
+    });
+    expect(transactionRepo.createTx).toHaveBeenCalledWith(
+      tx,
+      expect.objectContaining({
+        accountId: "a1",
+        toAccountId: "a2",
+        type: "TRANSFER",
+        amount: 1200,
+      }),
+    );
+    expect(result).toEqual(created);
+  });
+
+  it("throws when transfer is missing destination account", async () => {
+    await expect(
+      transactionService.create("u1", {
+        accountId: "a1",
+        type: "TRANSFER",
+        category: "Between accounts",
+        amount: 100,
+        date: new Date("2026-03-02T10:00:00.000Z"),
+      }),
+    ).rejects.toThrow("toAccountId is required for TRANSFER");
+
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
 });
