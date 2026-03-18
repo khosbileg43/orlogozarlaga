@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { SquareUserRound } from "lucide-react";
-import React from "react";
+import React, { useState } from "react";
 
 const navLinks = [
   { name: "My Pocket", href: "/pocketDashboard" },
@@ -14,6 +14,19 @@ const navLinks = [
 
 export default function OzLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const [loggingOut, setLoggingOut] = useState(false);
+
+  const onLogout = async () => {
+    try {
+      setLoggingOut(true);
+      await fetch("/api/auth/logout", { method: "POST" });
+    } finally {
+      router.replace("/login");
+      router.refresh();
+      setLoggingOut(false);
+    }
+  };
 
   return (
     <div className="min-h-screen px-3 py-4 md:px-5 md:py-6">
@@ -48,9 +61,18 @@ export default function OzLayout({ children }: { children: React.ReactNode }) {
             </div>
           </div>
 
-          <div className="mt-6 flex items-center gap-3 rounded-2xl border border-[#cfe0d6] bg-white/70 px-3 py-2.5">
+          <div className="mt-6 flex items-center gap-3 justify-between rounded-2xl border border-[#cfe0d6] bg-white/70 px-3 py-2.5">
             <SquareUserRound size={28} className="text-[#2e5e54]" />
-            <p className="truncate text-sm font-medium text-[#25453b]">Demo User</p>
+            <p className="truncate text-sm font-medium text-[#25453b]">
+              Demo User
+            </p>
+            <button
+              type="button"
+              onClick={onLogout}
+              disabled={loggingOut}
+              className="cursor-pointer rounded-xl border border-[#cfe0d6] bg-white/70 px-3 py-2 text-sm font-medium text-[#2f4b41] hover:bg-[#e7f0ea] disabled:cursor-not-allowed disabled:opacity-60">
+              {loggingOut ? "Logging out..." : "Logout"}
+            </button>
           </div>
         </aside>
 
