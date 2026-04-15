@@ -1,0 +1,47 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f1f5f1;
+  --foreground: #14221c;
+  --muted: #4f665c;
+  --surface: rgba(255, 255, 255, 0.82);
+  --surface-line: #d8e4dd;
+  --shadow: 0 12px 30px rgba(19, 40, 30, 0.08);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  background-image:
+    radial-gradient(900px 420px at -5% -10%, #cde3d5 0%, transparent 65%),
+    radial-gradient(820px 360px at 110% -5%, #c8dde1 0%, transparent 62%),
+    linear-gradient(180deg, #f4f8f4 0%, #eef2ef 100%);
+  font-family: "Avenir Next", "Nunito Sans", "Segoe UI", sans-serif;
+}
+
+button {
+  transition:
+    transform 150ms ease,
+    box-shadow 150ms ease,
+    background-color 150ms ease,
+    color 150ms ease;
+}
+
+button:active {
+  transform: translateY(1px);
+}
+
+.panel-surface {
+  background: var(--surface);
+  border: 1px solid var(--surface-line);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(8px);
+}
+
+.soft-text {
+  color: var(--muted);
+}

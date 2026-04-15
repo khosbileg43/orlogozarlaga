@@ -1,36 +1,105 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+## Local setup
 
-## Getting Started
+1. Install dependencies:
 
-First, run the development server:
+```bash
+npm install
+```
+
+2. Configure `.env`:
+
+```env
+DATABASE_URL="postgresql://postgres:postgres@localhost:5433/orlogozarlaga"
+
+AUTH0_DOMAIN="your-tenant.us.auth0.com"
+AUTH0_CLIENT_ID="your-client-id"
+AUTH0_CLIENT_SECRET="your-client-secret"
+AUTH0_SECRET="32-byte-hex-secret"
+APP_BASE_URL="http://localhost:3000"
+```
+
+3. Start PostgreSQL locally:
+
+```bash
+docker run --name orlogozarlaga-postgres \
+  -e POSTGRES_PASSWORD=postgres \
+  -e POSTGRES_DB=orlogozarlaga \
+  -p 5433:5432 \
+  -d postgres:16
+```
+
+4. Run migrations and seed:
+
+```bash
+npx prisma migrate dev
+npx prisma db seed
+```
+
+5. Start the app:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Auth0 Setup
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+1. Create a Regular Web Application in Auth0 Dashboard.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+2. In `Application -> Settings`, set:
 
-## Learn More
+```text
+Allowed Callback URLs:x
+http://localhost:3000/auth/callback
 
-To learn more about Next.js, take a look at the following resources:
+Allowed Logout URLs:
+http://localhost:3000/login
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Allowed Web Origins:
+http://localhost:3000
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+3. Copy the following values into `.env`:
 
-## Deploy on Vercel
+```env
+DATABASE_URL="postgresql://postgres:postgres@localhost:5433/orlogozarlaga"
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+AUTH0_DOMAIN="dev-oqcbacp6nbl2y2b1.us.auth0.com"
+AUTH0_CLIENT_ID="CRpK7dD5nuZwOQ5y0EJBc5qy5zKL63C8"
+AUTH0_CLIENT_SECRET="u17wVdmG7Jp1Rc03ZUk-m3mQwHRM2hqivhmhrVMdZJ4fNLOGhKptLBchYbBuIKGG"
+AUTH0_SECRET="c4be60be8637129807fdd55b9daf1867a40692a24e8e3058382443db36f21d2d"
+APP_BASE_URL=http://localhost:3000
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```
+
+4. Generate `AUTH0_SECRET` locally:
+
+```bash
+openssl rand -hex 32
+```
+
+Then place the output into:
+
+```env
+AUTH0_SECRET="paste-generated-value-here"
+```
+
+5. Enable Universal Login in Auth0 and keep the app on the default hosted login page.
+
+6. Start the app and open:
+
+```text
+http://localhost:3000/login
+```
+
+7. Test the full flow:
+
+- Click `Continue with Auth0`
+- Sign up or log in from Auth0 hosted page
+- Confirm you return to `/pocketDashboard`
+- Click `Logout` and confirm you return to `/login`
+
+## Notes
+
+- Authentication is Auth0-only. There is no local email/password fallback in this app.
+- `npx prisma db seed` creates a sample user record for `demo@user.com`, but access still
+  requires a real Auth0 login with the same email.

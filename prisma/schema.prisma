@@ -1,0 +1,59 @@
+datasource db {
+  provider = "postgresql" // change to "postgresql" if using Postgres
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum TransactionType {
+  INCOME
+  EXPENSE
+  TRANSFER
+}
+
+model User {
+  id           String        @id @default(cuid())
+  auth0Id      String?       @unique
+  email        String        @unique
+  name         String?
+  accounts     Account[]
+  transactions Transaction[]
+  createdAt    DateTime      @default(now())
+}
+
+model Account {
+  id                String        @id @default(cuid())
+  userId            String
+  name              String
+  balance           Int           @default(0)
+  user              User          @relation(fields: [userId], references: [id])
+  txns              Transaction[] @relation("SourceAccountTransactions")
+  incomingTransfers Transaction[] @relation("DestinationAccountTransactions")
+  createdAt         DateTime      @default(now())
+
+  @@index([userId])
+  @@unique([userId, name])
+}
+
+model Transaction {
+  id          String          @id @default(cuid())
+  userId      String
+  accountId   String
+  toAccountId String?
+  type        TransactionType
+  category    String
+  amount      Int
+  description String?
+  date        DateTime
+
+  user      User     @relation(fields: [userId], references: [id])
+  account   Account  @relation("SourceAccountTransactions", fields: [accountId], references: [id])
+  toAccount Account? @relation("DestinationAccountTransactions", fields: [toAccountId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([userId, date])
+  @@index([accountId, date])
+  @@index([toAccountId, date])
+}
