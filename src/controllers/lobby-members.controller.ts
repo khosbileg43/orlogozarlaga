@@ -26,7 +26,7 @@ export const lobbyMembersController = {
       const body = await req.json();
       const parsed = createLobbyMemberSchema.parse(body);
       const member = await lobbyMemberService.create(user.id, parsedLobbyId, {
-        userId: parsed.userId,
+        email: parsed.email,
         role: parsed.role,
       });
       return ok({ member }, 201);

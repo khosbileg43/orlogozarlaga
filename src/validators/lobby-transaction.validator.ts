@@ -3,8 +3,9 @@ import {
   limitSchema,
   monthSchema,
   pageSchema,
-  transactionTypeSchema,
 } from "./transaction.validator";
+
+const lobbyTransactionTypeSchema = z.enum(["INCOME", "EXPENSE"]);
 
 const dateStringSchema = z
   .string()
@@ -15,7 +16,7 @@ const dateStringSchema = z
 
 export const listLobbyTransactionsQuerySchema = z.object({
   month: monthSchema.optional(),
-  type: transactionTypeSchema.optional(),
+  type: lobbyTransactionTypeSchema.optional(),
   page: pageSchema.optional(),
   limit: limitSchema.optional(),
 });
@@ -27,7 +28,7 @@ export const lobbyTransactionIdParamSchema = z.object({
 
 export const createLobbyTransactionSchema = z.object({
   memberId: z.string().min(1),
-  type: transactionTypeSchema,
+  type: lobbyTransactionTypeSchema,
   category: z.string().trim().min(1).max(80),
   amount: z.number().int().positive(),
   description: z.string().trim().max(200).nullish(),
@@ -37,7 +38,7 @@ export const createLobbyTransactionSchema = z.object({
 export const updateLobbyTransactionSchema = z
   .object({
     memberId: z.string().min(1).optional(),
-    type: transactionTypeSchema.optional(),
+    type: lobbyTransactionTypeSchema.optional(),
     category: z.string().trim().min(1).max(80).optional(),
     amount: z.number().int().positive().optional(),
     description: z.string().trim().max(200).nullable().optional(),

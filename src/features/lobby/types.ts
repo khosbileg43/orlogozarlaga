@@ -14,7 +14,7 @@ export type Lobby = {
 
 export type LobbyUser = {
   id: string;
-  name: string;
+  name: string | null;
   email: string;
 };
 
@@ -49,7 +49,13 @@ export type LobbyTransaction = {
 };
 
 export type LobbyListItem = Lobby & {
+  role: LobbyRole;
+  status: LobbyMemberStatus;
   memberCount: number;
+};
+
+export type LobbyDetail = LobbyListItem & {
+  members: LobbyMember[];
 };
 
 export type LobbySummary = {
@@ -58,8 +64,9 @@ export type LobbySummary = {
     name: string;
     balance: number;
   };
-  monthlyIncome: number;
-  monthlyExpense: number;
+  balanceTotal: number;
+  incomeTotal: number;
+  expenseTotal: number;
   memberCount: number;
   recentTransactions: Array<{
     id: string;
@@ -70,25 +77,32 @@ export type LobbySummary = {
     member: {
       id: string;
       user: {
-        name: string;
+        name: string | null;
+        email: string;
       };
     };
+  }>;
+  incomeByCategory: Array<{
+    category: string;
+    amount: number;
+  }>;
+  expenseByCategory: Array<{
+    category: string;
+    amount: number;
   }>;
 };
 
 export type LobbyMemberContribution = {
   memberId: string;
   userId: string;
-  name: string;
+  name: string | null;
+  email: string;
   role: LobbyRole;
-  totalIncome: number;
-  totalExpense: number;
-};
-
-export type MockLobbyState = {
-  lobbies: Lobby[];
-  members: LobbyMember[];
-  transactions: LobbyTransaction[];
+  status: LobbyMemberStatus;
+  incomeTotal: number;
+  expenseTotal: number;
+  netTotal: number;
+  transactionCount: number;
 };
 
 export type CreateLobbyTransactionInput = {
@@ -103,5 +117,8 @@ export type CreateLobbyTransactionInput = {
 export type CreateLobbyInput = {
   name: string;
   description?: string;
-  user: LobbyUser;
 };
+
+export type UpdateLobbyTransactionInput = Partial<CreateLobbyTransactionInput>;
+
+export type LobbyTab = "OVERVIEW" | "TRANSACTIONS" | "MEMBERS";

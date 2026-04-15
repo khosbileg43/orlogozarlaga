@@ -1,7 +1,7 @@
 import { z } from "zod";
 
-const lobbyNameSchema = z.string().trim().min(1).max(80);
-const lobbyDescriptionSchema = z.string().trim().max(240);
+const lobbyNameSchema = z.string().trim().min(1).max(100);
+const lobbyDescriptionSchema = z.string().trim().max(500);
 
 export const lobbyIdParamSchema = z.object({
   lobbyId: z.string().min(1),

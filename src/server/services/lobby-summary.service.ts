@@ -1,5 +1,9 @@
 import { getMonthRange } from "@/lib/date/monthRange";
-import { LobbyMemberSummaryDto, LobbySummaryDto } from "@/types";
+import {
+  LobbyMemberSummaryDto,
+  LobbySummaryDto,
+  LobbyTransactionTypeDto,
+} from "@/types";
 import { NotFoundError } from "@/utils/errors";
 import { lobbyMemberRepo } from "../repositories/lobby-member.repo";
 import { lobbyRepo } from "../repositories/lobby.repo";
@@ -12,6 +16,10 @@ async function requireLobbyAccess(userId: string, lobbyId: string) {
   }
 }
 
+function toLobbyTransactionType(value: string): LobbyTransactionTypeDto {
+  return value === "INCOME" ? "INCOME" : "EXPENSE";
+}
+
 export const lobbySummaryService = {
   async getSummary(args: { userId: string; lobbyId: string; month?: string }) {
     await requireLobbyAccess(args.userId, args.lobbyId);
@@ -22,7 +30,7 @@ export const lobbySummaryService = {
       throw new NotFoundError("Lobby not found");
     }
 
-    const [incomeAgg, expenseAgg, incomeCats, expenseCats] = await Promise.all([
+    const [incomeAgg, expenseAgg, incomeCats, expenseCats, recentTransactions] = await Promise.all([
       lobbySummaryRepo.getIncomeTotal(
         args.lobbyId,
         range?.start,
@@ -43,12 +51,38 @@ export const lobbySummaryService = {
         range?.start,
         range?.end,
       ),
+      lobbySummaryRepo.listRecentTransactions(
+        args.lobbyId,
+        range?.start,
+        range?.end,
+        4,
+      ),
     ]);
 
     const summary: LobbySummaryDto = {
+      lobby: {
+        id: lobby.id,
+        name: lobby.name,
+        balance: lobby.balance,
+      },
       balanceTotal: lobby.balance,
       incomeTotal: incomeAgg._sum.amount ?? 0,
       expenseTotal: expenseAgg._sum.amount ?? 0,
+      memberCount: lobby.members.length,
+      recentTransactions: recentTransactions.map((transaction) => ({
+        id: transaction.id,
+        type: toLobbyTransactionType(transaction.type),
+        category: transaction.category,
+        amount: transaction.amount,
+        date: transaction.date,
+        member: {
+          id: transaction.member.id,
+          user: {
+            name: transaction.member.user.name,
+            email: transaction.member.user.email,
+          },
+        },
+      })),
       incomeByCategory: incomeCats.map((item) => ({
         category: item.category,
         amount: item._sum.amount ?? 0,

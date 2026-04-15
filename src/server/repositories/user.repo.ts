@@ -14,10 +14,9 @@ export const userRepo = {
     });
   },
 
-  updateProfile(userId: string, data: { name: string | null }) {
-    return prisma.user.update({
-      where: { id: userId },
-      data,
+  findByEmail(email: string) {
+    return prisma.user.findUnique({
+      where: { email },
       select: { id: true, auth0Id: true, email: true, name: true },
     });
   },

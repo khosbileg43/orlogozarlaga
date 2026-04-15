@@ -53,6 +53,9 @@ export const lobbySummaryRepo = {
     return prisma.lobbyTransaction.findMany({
       where: {
         lobbyId,
+        type: {
+          in: ["INCOME", "EXPENSE"],
+        },
         ...(start && end ? { date: { gte: start, lt: end } } : {}),
       },
       select: {
@@ -70,6 +73,38 @@ export const lobbySummaryRepo = {
               select: {
                 email: true,
                 name: true,
+              },
+            },
+          },
+        },
+      },
+    });
+  },
+
+  listRecentTransactions(lobbyId: string, start?: Date, end?: Date, limit = 5) {
+    return prisma.lobbyTransaction.findMany({
+      where: {
+        lobbyId,
+        type: {
+          in: ["INCOME", "EXPENSE"],
+        },
+        ...(start && end ? { date: { gte: start, lt: end } } : {}),
+      },
+      orderBy: [{ date: "desc" }, { createdAt: "desc" }],
+      take: limit,
+      select: {
+        id: true,
+        type: true,
+        category: true,
+        amount: true,
+        date: true,
+        member: {
+          select: {
+            id: true,
+            user: {
+              select: {
+                name: true,
+                email: true,
               },
             },
           },

@@ -45,8 +45,10 @@ export const lobbyTransactionRepo = {
     return prisma.lobbyTransaction.findMany({
       where: {
         lobbyId: args.lobbyId,
+        type: {
+          in: args.type ? [args.type] : ["INCOME", "EXPENSE"],
+        },
         ...(args.start && args.end ? { date: { gte: args.start, lt: args.end } } : {}),
-        ...(args.type ? { type: args.type } : {}),
       },
       orderBy: { date: "desc" },
       skip: args.offset,
