@@ -110,4 +110,23 @@ export const lobbyService = {
 
     return toDetail(updated, userId);
   },
+
+  async delete(userId: string, lobbyId: string) {
+    const existing = await lobbyRepo.findByIdAndUserId(lobbyId, userId);
+    if (!existing) {
+      throw new NotFoundError("Lobby not found");
+    }
+
+    const membership = existing.members.find((member) => member.userId === userId);
+    if (!membership) {
+      throw new NotFoundError("Lobby not found");
+    }
+
+    if (membership.role !== "OWNER") {
+      throw new ForbiddenError("Only the lobby owner can delete this lobby");
+    }
+
+    const deleted = await lobbyRepo.deleteById(lobbyId);
+    return toDetail(deleted, userId);
+  },
 };

@@ -74,6 +74,41 @@ export type LobbyDetailDto = LobbyListItemDto & {
   members: LobbyMemberDto[];
 };
 
+export type LobbyTransactionDto = {
+  id: string;
+  lobbyId: string;
+  memberId: string;
+  type: TransactionType;
+  category: string;
+  amount: number;
+  description: string | null;
+  date: Date;
+  createdAt: Date;
+  updatedAt: Date;
+  member: LobbyMemberDto;
+};
+
+export type LobbyMemberSummaryDto = {
+  memberId: string;
+  userId: string;
+  role: LobbyRoleDto;
+  status: LobbyMemberStatusDto;
+  name: string | null;
+  email: string;
+  incomeTotal: number;
+  expenseTotal: number;
+  netTotal: number;
+  transactionCount: number;
+};
+
+export type LobbySummaryDto = {
+  balanceTotal: number;
+  incomeTotal: number;
+  expenseTotal: number;
+  incomeByCategory: CategoryAmountDto[];
+  expenseByCategory: CategoryAmountDto[];
+};
+
 export type LobbyMemberApiDto = {
   id: string;
   userId: string;
@@ -106,6 +141,41 @@ export type LobbyDetailApiDto = LobbyListItemApiDto & {
   members: LobbyMemberApiDto[];
 };
 
+export type LobbyTransactionApiDto = {
+  id: string;
+  lobbyId: string;
+  memberId: string;
+  type: TransactionType;
+  category: string;
+  amount: number;
+  description: string | null;
+  date: IsoDateString;
+  createdAt: IsoDateString;
+  updatedAt: IsoDateString;
+  member: LobbyMemberApiDto;
+};
+
+export type LobbyMemberSummaryApiDto = {
+  memberId: string;
+  userId: string;
+  role: LobbyRoleDto;
+  status: LobbyMemberStatusDto;
+  name: string | null;
+  email: string;
+  incomeTotal: number;
+  expenseTotal: number;
+  netTotal: number;
+  transactionCount: number;
+};
+
+export type LobbySummaryApiDto = {
+  balanceTotal: number;
+  incomeTotal: number;
+  expenseTotal: number;
+  incomeByCategory: CategoryAmountDto[];
+  expenseByCategory: CategoryAmountDto[];
+};
+
 export type CreateLobbyRequestDto = {
   name: string;
   description?: string | null;
@@ -130,4 +200,84 @@ export type CreateLobbyResponseDto = {
 
 export type UpdateLobbyResponseDto = {
   lobby: LobbyDetailApiDto;
+};
+
+export type DeleteLobbyResponseDto = {
+  lobby: LobbyDetailApiDto;
+};
+
+export type CreateLobbyMemberRequestDto = {
+  userId: string;
+  role?: LobbyRoleDto;
+};
+
+export type UpdateLobbyMemberRequestDto = {
+  role?: LobbyRoleDto;
+  status?: LobbyMemberStatusDto;
+};
+
+export type ListLobbyMembersResponseDto = {
+  members: LobbyMemberApiDto[];
+};
+
+export type GetLobbyMemberResponseDto = {
+  member: LobbyMemberApiDto;
+};
+
+export type CreateLobbyMemberResponseDto = {
+  member: LobbyMemberApiDto;
+};
+
+export type UpdateLobbyMemberResponseDto = {
+  member: LobbyMemberApiDto;
+};
+
+export type DeleteLobbyMemberResponseDto = {
+  member: LobbyMemberApiDto;
+};
+
+export type CreateLobbyTransactionRequestDto = {
+  memberId: string;
+  type: TransactionType;
+  category: string;
+  amount: number;
+  description?: string | null;
+  date: IsoDateString;
+};
+
+export type UpdateLobbyTransactionRequestDto = {
+  memberId?: string;
+  type?: TransactionType;
+  category?: string;
+  amount?: number;
+  description?: string | null;
+  date?: IsoDateString;
+};
+
+export type ListLobbyTransactionsResponseDto = {
+  transactions: LobbyTransactionApiDto[];
+};
+
+export type GetLobbyTransactionResponseDto = {
+  transaction: LobbyTransactionApiDto;
+};
+
+export type CreateLobbyTransactionResponseDto = {
+  transaction: LobbyTransactionApiDto;
+};
+
+export type UpdateLobbyTransactionResponseDto = {
+  transaction: LobbyTransactionApiDto;
+};
+
+export type DeleteLobbyTransactionResponseDto = {
+  transaction: LobbyTransactionApiDto;
+};
+
+export type GetLobbySummaryResponseDto = {
+  summary: LobbySummaryApiDto;
+};
+
+export type GetLobbyMemberSummaryResponseDto = {
+  members: LobbyMemberSummaryApiDto[];
 };

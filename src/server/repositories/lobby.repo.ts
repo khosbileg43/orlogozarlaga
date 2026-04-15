@@ -126,4 +126,32 @@ export const lobbyRepo = {
       },
     });
   },
+
+  incrementBalanceByIdTx(
+    tx: Prisma.TransactionClient,
+    args: {
+      lobbyId: string;
+      by: number;
+    },
+  ) {
+    return tx.lobby.updateMany({
+      where: { id: args.lobbyId },
+      data: {
+        balance: { increment: args.by },
+      },
+    });
+  },
+
+  deleteById(lobbyId: string) {
+    return prisma.lobby.delete({
+      where: { id: lobbyId },
+      select: {
+        ...lobbyBaseSelect,
+        members: {
+          select: lobbyMemberSelect,
+          orderBy: [{ role: "asc" }, { joinedAt: "asc" }],
+        },
+      },
+    });
+  },
 };

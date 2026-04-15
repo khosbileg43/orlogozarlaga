@@ -59,4 +59,15 @@ export const lobbiesController = {
       return fail(error);
     }
   },
+
+  async remove(lobbyId: string) {
+    try {
+      const user = await authService.requireAuthenticatedUser();
+      const { lobbyId: parsedId } = lobbyIdParamSchema.parse({ lobbyId });
+      const lobby = await lobbyService.delete(user.id, parsedId);
+      return ok({ lobby });
+    } catch (error) {
+      return fail(error);
+    }
+  },
 };

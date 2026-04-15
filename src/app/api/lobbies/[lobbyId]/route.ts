@@ -18,3 +18,10 @@ export async function PATCH(req: Request, context: LobbyRouteContext) {
     lobbiesController.update(req, lobbyId),
   );
 }
+
+export async function DELETE(req: Request, context: LobbyRouteContext) {
+  const { lobbyId } = await context.params;
+  return withObservedRequest("api.lobbies.delete", req, () =>
+    lobbiesController.remove(lobbyId),
+  );
+}

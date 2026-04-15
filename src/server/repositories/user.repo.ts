@@ -7,6 +7,13 @@ type UpsertAuthUserInput = {
 };
 
 export const userRepo = {
+  findById(userId: string) {
+    return prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, auth0Id: true, email: true, name: true },
+    });
+  },
+
   async upsertFromAuth0Identity(input: UpsertAuthUserInput) {
     const existingByAuth0 = await prisma.user.findUnique({
       where: { auth0Id: input.auth0Id },
