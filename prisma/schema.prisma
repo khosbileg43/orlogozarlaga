@@ -1,5 +1,5 @@
 datasource db {
-  provider = "postgresql" // change to "postgresql" if using Postgres
+  provider = "postgresql"
 }
 
 generator client {
@@ -12,14 +12,26 @@ enum TransactionType {
   TRANSFER
 }
 
+enum LobbyRole {
+  OWNER
+  MEMBER
+}
+
+enum LobbyMemberStatus {
+  ACTIVE
+  LEFT
+}
+
 model User {
-  id           String        @id @default(cuid())
-  auth0Id      String?       @unique
-  email        String        @unique
-  name         String?
-  accounts     Account[]
-  transactions Transaction[]
-  createdAt    DateTime      @default(now())
+  id               String        @id @default(cuid())
+  auth0Id          String?       @unique
+  email            String        @unique
+  name             String?
+  accounts         Account[]
+  transactions     Transaction[]
+  lobbiesCreated   Lobby[]       @relation("LobbyCreator")
+  lobbyMemberships LobbyMember[]
+  createdAt        DateTime      @default(now())
 }
 
 model Account {
@@ -27,13 +39,14 @@ model Account {
   userId            String
   name              String
   balance           Int           @default(0)
-  user              User          @relation(fields: [userId], references: [id])
+  user              User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   txns              Transaction[] @relation("SourceAccountTransactions")
   incomingTransfers Transaction[] @relation("DestinationAccountTransactions")
   createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
 
-  @@index([userId])
   @@unique([userId, name])
+  @@index([userId])
 }
 
 model Transaction {
@@ -47,13 +60,65 @@ model Transaction {
   description String?
   date        DateTime
 
-  user      User     @relation(fields: [userId], references: [id])
-  account   Account  @relation("SourceAccountTransactions", fields: [accountId], references: [id])
-  toAccount Account? @relation("DestinationAccountTransactions", fields: [toAccountId], references: [id])
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  account   Account  @relation("SourceAccountTransactions", fields: [accountId], references: [id], onDelete: Cascade)
+  toAccount Account? @relation("DestinationAccountTransactions", fields: [toAccountId], references: [id], onDelete: SetNull)
 
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([userId, date])
   @@index([accountId, date])
   @@index([toAccountId, date])
+}
+
+model Lobby {
+  id           String             @id @default(cuid())
+  name         String
+  description  String?
+  balance      Int                @default(0)
+  createdById  String
+  createdBy    User               @relation("LobbyCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  members      LobbyMember[]
+  transactions LobbyTransaction[]
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  @@index([createdById])
+}
+
+model LobbyMember {
+  id           String             @id @default(cuid())
+  lobbyId      String
+  userId       String
+  role         LobbyRole          @default(MEMBER)
+  status       LobbyMemberStatus  @default(ACTIVE)
+  joinedAt     DateTime           @default(now())
+  lobby        Lobby              @relation(fields: [lobbyId], references: [id], onDelete: Cascade)
+  user         User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions LobbyTransaction[]
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  @@unique([lobbyId, userId])
+  @@index([lobbyId])
+  @@index([userId])
+}
+
+model LobbyTransaction {
+  id          String          @id @default(cuid())
+  lobbyId     String
+  memberId    String
+  type        TransactionType
+  category    String
+  amount      Int
+  description String?
+  date        DateTime
+  lobby       Lobby           @relation(fields: [lobbyId], references: [id], onDelete: Cascade)
+  member      LobbyMember     @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@index([lobbyId, date])
+  @@index([memberId])
 }

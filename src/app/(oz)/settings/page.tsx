@@ -180,7 +180,9 @@ export default function SettingsPage() {
   ];
 
   function savePreview() {
-    setStatusText("Frontend preview saved locally. Backend persistence can be wired next.");
+    setStatusText(
+      "Frontend preview saved locally. Backend persistence can be wired next.",
+    );
   }
 
   function resetPreview() {
@@ -190,7 +192,7 @@ export default function SettingsPage() {
 
   return (
     <div className="flex w-full flex-col gap-4">
-      <section className="panel-surface overflow-hidden rounded-[32px]">
+      <section className="panel-surface overflow-hidden rounded-4xl">
         <div className="grid gap-4 p-4 sm:p-5 xl:grid-cols-[minmax(0,1.2fr)_340px]">
           <div className="space-y-4">
             <div>
@@ -203,9 +205,10 @@ export default function SettingsPage() {
                     Tune the system around your money rhythm
                   </h1>
                   <p className="soft-text mt-2 max-w-2xl text-sm leading-6">
-                    This pass is frontend-only, so the focus is hierarchy, clarity, and
-                    interaction quality. The page keeps the same soft glass cards and
-                    green-led accents as the rest of the dashboard.
+                    This pass is frontend-only, so the focus is hierarchy,
+                    clarity, and interaction quality. The page keeps the same
+                    soft glass cards and green-led accents as the rest of the
+                    dashboard.
                   </p>
                 </div>
                 <div className="rounded-2xl border border-[#cfe0d6] bg-[#f4fbf7] px-3 py-2 text-sm font-medium text-[#255247]">
@@ -222,7 +225,9 @@ export default function SettingsPage() {
                   <p className="soft-text text-[11px] font-semibold uppercase tracking-[0.14em]">
                     Active now
                   </p>
-                  <p className="mt-1 text-sm font-semibold text-[#18382e]">{item}</p>
+                  <p className="mt-1 text-sm font-semibold text-[#18382e]">
+                    {item}
+                  </p>
                 </div>
               ))}
             </div>
@@ -266,7 +271,9 @@ export default function SettingsPage() {
                 <p className="text-xs uppercase tracking-[0.14em] text-white/70">
                   Transfer label
                 </p>
-                <p className="mt-1 text-sm font-semibold">{settings.transferLabel}</p>
+                <p className="mt-1 text-sm font-semibold">
+                  {settings.transferLabel}
+                </p>
               </div>
             </div>
           </div>
@@ -286,12 +293,16 @@ export default function SettingsPage() {
                   <ChoiceButton
                     active={settings.language === "MN"}
                     label="Mongolian"
-                    onClick={() => setSettings((current) => ({ ...current, language: "MN" }))}
+                    onClick={() =>
+                      setSettings((current) => ({ ...current, language: "MN" }))
+                    }
                   />
                   <ChoiceButton
                     active={settings.language === "EN"}
                     label="English"
-                    onClick={() => setSettings((current) => ({ ...current, language: "EN" }))}
+                    onClick={() =>
+                      setSettings((current) => ({ ...current, language: "EN" }))
+                    }
                   />
                 </div>
               </FieldShell>
@@ -316,13 +327,21 @@ export default function SettingsPage() {
                   <ChoiceButton
                     active={settings.monthStart === "1"}
                     label="Start on 1st"
-                    onClick={() => setSettings((current) => ({ ...current, monthStart: "1" }))}
+                    onClick={() =>
+                      setSettings((current) => ({
+                        ...current,
+                        monthStart: "1",
+                      }))
+                    }
                   />
                   <ChoiceButton
                     active={settings.monthStart === "25"}
                     label="Start on 25th"
                     onClick={() =>
-                      setSettings((current) => ({ ...current, monthStart: "25" }))
+                      setSettings((current) => ({
+                        ...current,
+                        monthStart: "25",
+                      }))
                     }
                   />
                 </div>
@@ -417,7 +436,8 @@ export default function SettingsPage() {
                   onChange={(event) =>
                     setSettings((current) => ({
                       ...current,
-                      reminderTime: event.target.value as SettingsState["reminderTime"],
+                      reminderTime: event.target
+                        .value as SettingsState["reminderTime"],
                     }))
                   }
                   className="w-full rounded-xl border border-[#d5e3da] bg-white px-3 py-2.5 text-sm text-[#1c3b31] outline-none focus:border-[#65a48b]">
@@ -427,13 +447,17 @@ export default function SettingsPage() {
                 </select>
               </FieldShell>
 
-              <FieldShell label="Large expense threshold" hint="Single transaction">
+              <FieldShell
+                label="Large expense threshold"
+                hint="Single transaction">
                 <div className="flex flex-wrap gap-2">
-                  {([
-                    ["50000", "¥50k"],
-                    ["100000", "¥100k"],
-                    ["250000", "¥250k"],
-                  ] as const).map(([value, label]) => (
+                  {(
+                    [
+                      ["50000", "¥50k"],
+                      ["100000", "¥100k"],
+                      ["250000", "¥250k"],
+                    ] as const
+                  ).map(([value, label]) => (
                     <ChoiceButton
                       key={value}
                       active={settings.threshold === value}
@@ -461,10 +485,12 @@ export default function SettingsPage() {
             <div className="rounded-2xl border border-[#d7e4dc] bg-[#f7fbf8] p-4">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <p className="text-sm font-semibold text-[#17362d]">Authentication provider</p>
+                  <p className="text-sm font-semibold text-[#17362d]">
+                    Authentication provider
+                  </p>
                   <p className="soft-text mt-1 text-xs leading-5">
-                    Hosted login is active. Password reset and account lifecycle stay in
-                    Auth0.
+                    Hosted login is active. Password reset and account lifecycle
+                    stay in Auth0.
                   </p>
                 </div>
                 <div className="rounded-xl bg-[#1f5f55] px-3 py-2 text-xs font-semibold text-white">
@@ -475,11 +501,13 @@ export default function SettingsPage() {
 
             <FieldShell label="Session timeout" hint="Auto logout">
               <div className="flex flex-wrap gap-2">
-                {([
-                  ["30", "30 min"],
-                  ["120", "2 hours"],
-                  ["1440", "24 hours"],
-                ] as const).map(([value, label]) => (
+                {(
+                  [
+                    ["30", "30 min"],
+                    ["120", "2 hours"],
+                    ["1440", "24 hours"],
+                  ] as const
+                ).map(([value, label]) => (
                   <ChoiceButton
                     key={value}
                     active={settings.sessionTimeout === value}
@@ -515,11 +543,13 @@ export default function SettingsPage() {
             description="Shape the app's opening state and a few naming conventions before backend wiring starts.">
             <FieldShell label="Landing page" hint="After login">
               <div className="flex flex-wrap gap-2">
-                {([
-                  ["/pocketDashboard", "My Pocket"],
-                  ["/lobby", "Lobby"],
-                  ["/settings", "Settings"],
-                ] as const).map(([value, label]) => (
+                {(
+                  [
+                    ["/pocketDashboard", "My Pocket"],
+                    ["/lobby", "Lobby"],
+                    ["/settings", "Settings"],
+                  ] as const
+                ).map(([value, label]) => (
                   <ChoiceButton
                     key={value}
                     active={settings.landingPage === value}
@@ -541,7 +571,8 @@ export default function SettingsPage() {
                 onChange={(event) =>
                   setSettings((current) => ({
                     ...current,
-                    defaultAccount: event.target.value as SettingsState["defaultAccount"],
+                    defaultAccount: event.target
+                      .value as SettingsState["defaultAccount"],
                   }))
                 }
                 className="w-full rounded-xl border border-[#d5e3da] bg-white px-3 py-2.5 text-sm text-[#1c3b31] outline-none focus:border-[#65a48b]">
@@ -572,14 +603,20 @@ export default function SettingsPage() {
                   active={settings.exportFormat === "CSV"}
                   label="CSV"
                   onClick={() =>
-                    setSettings((current) => ({ ...current, exportFormat: "CSV" }))
+                    setSettings((current) => ({
+                      ...current,
+                      exportFormat: "CSV",
+                    }))
                   }
                 />
                 <ChoiceButton
                   active={settings.exportFormat === "JSON"}
                   label="JSON"
                   onClick={() =>
-                    setSettings((current) => ({ ...current, exportFormat: "JSON" }))
+                    setSettings((current) => ({
+                      ...current,
+                      exportFormat: "JSON",
+                    }))
                   }
                 />
               </div>
@@ -599,9 +636,10 @@ export default function SettingsPage() {
                   What is ready for backend next
                 </h2>
                 <p className="soft-text mt-1 text-sm leading-6">
-                  The page now has a stable information architecture: grouped controls,
-                  clear primary actions, and responsive layout behavior. Backend wiring can
-                  map directly onto this shape without redesigning the UI.
+                  The page now has a stable information architecture: grouped
+                  controls, clear primary actions, and responsive layout
+                  behavior. Backend wiring can map directly onto this shape
+                  without redesigning the UI.
                 </p>
               </div>
             </div>
@@ -644,7 +682,9 @@ export default function SettingsPage() {
       <section className="panel-surface sticky bottom-3 z-10 rounded-[28px] px-4 py-3 sm:px-5">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="min-w-0">
-            <p className="text-sm font-semibold text-[#17372d]">Settings preview status</p>
+            <p className="text-sm font-semibold text-[#17372d]">
+              Settings preview status
+            </p>
             <p className="soft-text text-sm leading-6">{statusText}</p>
           </div>
 
