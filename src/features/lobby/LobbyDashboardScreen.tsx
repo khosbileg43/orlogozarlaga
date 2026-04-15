@@ -38,6 +38,8 @@ import {
   formatMonthLabel,
   formatYen,
 } from "../dashboard/format";
+import { getCopy } from "../settings/copy";
+import { useUserPreferences } from "../settings/useUserPreferences";
 import type {
   CreateLobbyTransactionInput,
   LobbyDetail,
@@ -73,14 +75,14 @@ function getTodayIsoDate() {
   return `${new Date().toISOString().slice(0, 10)}T00:00:00.000Z`;
 }
 
-function formatDateLabel(value: string) {
+function formatDateLabel(value: string, locale: string) {
   const date = new Date(value);
 
   if (Number.isNaN(date.getTime())) {
     return "Pick date";
   }
 
-  return date.toLocaleDateString("en-US", {
+  return date.toLocaleDateString(locale, {
     month: "short",
     day: "numeric",
     year: "numeric",
@@ -132,6 +134,9 @@ function createInitialTransactionForm(): CreateLobbyTransactionInput {
 export default function LobbyDashboardScreen({
   lobbyId,
 }: LobbyDashboardScreenProps) {
+  const { preferences } = useUserPreferences();
+  const copy = getCopy(preferences.language);
+  const locale = preferences.language === "MN" ? "mn-MN" : "en-US";
   const [month, setMonth] = useState(getCurrentMonth());
   const [activeTab, setActiveTab] = useState<LobbyTab>("OVERVIEW");
   const [transactionFilter, setTransactionFilter] = useState<TransactionFilter>("ALL");
@@ -397,7 +402,7 @@ export default function LobbyDashboardScreen({
 
   if (loading) {
     return (
-      <div className="panel-surface rounded-3xl p-6 text-sm text-[#4a6559]">
+      <div className="panel-surface theme-muted rounded-3xl p-6 text-sm">
         Loading lobby...
       </div>
     );
@@ -405,7 +410,7 @@ export default function LobbyDashboardScreen({
 
   if (!lobby || !summary) {
     return (
-      <div className="panel-surface rounded-3xl p-6 text-sm text-[#4a6559]">
+      <div className="panel-surface theme-muted rounded-3xl p-6 text-sm">
         {error ?? "Lobby not found"}
       </div>
     );
@@ -413,64 +418,69 @@ export default function LobbyDashboardScreen({
 
   const activeMemberCount = members.filter((member) => member.status === "ACTIVE").length;
   const actionPanelTitle =
-    activeTab === "MEMBERS" ? "Add member" : editingTransactionId ? "Edit transaction" : "Add transaction";
+    activeTab === "MEMBERS"
+      ? copy.addMember
+      : editingTransactionId
+        ? copy.editTransaction
+        : copy.addTransactionLobby;
   const nextMonth = shiftMonth(month, 1);
   const previousMonth = shiftMonth(month, -1);
 
   return (
     <div className="space-y-3 sm:space-y-4 lg:space-y-5">
-      <section className="panel-surface relative overflow-hidden rounded-3xl px-4 py-5">
-        <div className="absolute inset-0 bg-linear-to-br from-[#fbfffd] via-transparent to-[#ddeee4]" />
-        <div className="absolute -right-16 top-0 h-44 w-44 rounded-full bg-[#d8ece1]/70 blur-2xl" />
-        <div className="absolute -left-10 bottom-0 h-32 w-32 rounded-full bg-[#d6e7eb]/60 blur-2xl" />
+      <section className="panel-surface lobby-hero relative overflow-hidden rounded-3xl px-4 py-5">
         <div className="relative flex flex-col gap-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="space-y-2">
               <Link
                 href="/lobby"
-                className="inline-flex items-center gap-2 text-sm font-medium text-[#2e5e54] hover:text-[#173a30]">
+                className="theme-icon inline-flex items-center gap-2 text-sm font-medium hover:text-[var(--foreground-strong)]">
                 <ArrowLeft size={16} />
-                Back to lobby list
+                {copy.backToLobbyList}
               </Link>
               <div className="flex flex-wrap items-center gap-2">
-                <span className="inline-flex items-center gap-2 rounded-full border border-[#d2e2d9] bg-white/70 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#5d766a]">
+                <span className="lobby-chip inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em]">
                   <Landmark size={13} />
-                  Shared monthly fund
+                  {copy.sharedMonthlyFund}
                 </span>
-                <span className="inline-flex items-center gap-2 rounded-full border border-[#d2e2d9] bg-white/70 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#5d766a]">
-                  {formatMonthLabel(month)}
+                <span className="lobby-chip inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em]">
+                  {formatMonthLabel(month, 1, locale)}
                 </span>
               </div>
-              <h1 className="text-3xl font-semibold tracking-tight text-[#173a30] sm:text-4xl">
+              <h1 className="theme-heading text-3xl font-semibold tracking-tight sm:text-4xl">
                 {lobby.name}
               </h1>
-              <p className="max-w-2xl text-sm leading-6 text-[#4a6559]">
-                {lobby.description || "No description"}
+              <p className="theme-muted max-w-2xl text-sm leading-6">
+                {lobby.description || copy.noDescription}
               </p>
             </div>
 
-            <div className="grid gap-2 rounded-[1.5rem] border border-[#d8e4dd] bg-white/80 px-4 py-4 text-sm text-[#355246] shadow-[0_10px_26px_rgba(24,61,47,0.06)] sm:min-w-60">
+            <div className="lobby-card grid gap-2 rounded-[1.5rem] px-4 py-4 text-sm sm:min-w-60">
               <div className="flex items-center justify-between gap-3">
-                <p className="text-xs uppercase tracking-[0.12em] text-[#6f8579]">Role</p>
-                <span className="inline-flex items-center gap-1 rounded-full bg-[#eef6f1] px-2.5 py-1 text-[11px] font-semibold text-[#214a3d]">
+                <p className="theme-muted text-xs uppercase tracking-[0.12em]">{copy.role}</p>
+                <span className="lobby-chip-owner inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold">
                   <ShieldCheck size={12} />
                   {lobby.role}
                 </span>
               </div>
               <div className="flex items-end justify-between gap-3">
                 <div>
-                  <p className="text-xs uppercase tracking-[0.12em] text-[#6f8579]">
-                    Shared balance
+                  <p className="theme-muted text-xs uppercase tracking-[0.12em]">
+                    {copy.sharedBalance}
                   </p>
-                  <p className="mt-1 text-2xl font-semibold text-[#173a30]">
-                    {formatYen(summary.balanceTotal)}
+                  <p className="theme-heading mt-1 text-2xl font-semibold">
+                    {formatYen(
+                      summary.balanceTotal,
+                      preferences.currency,
+                      preferences.hideBalances,
+                    )}
                   </p>
                 </div>
                 <div className="text-right">
-                  <p className="text-xs uppercase tracking-[0.12em] text-[#6f8579]">
-                    Members
+                  <p className="theme-muted text-xs uppercase tracking-[0.12em]">
+                    {copy.members}
                   </p>
-                  <p className="mt-1 text-lg font-semibold text-[#173a30]">
+                  <p className="theme-heading mt-1 text-lg font-semibold">
                     {activeMemberCount}
                   </p>
                 </div>
@@ -480,27 +490,39 @@ export default function LobbyDashboardScreen({
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
             <StatCard
-              title="Current balance"
-              value={formatYen(summary.balanceTotal)}
-              className="w-full bg-linear-to-br from-[#4ba17a] to-[#2e7964] text-[#f6fcf9]"
+              title={copy.currentBalance}
+              value={formatYen(
+                summary.balanceTotal,
+                preferences.currency,
+                preferences.hideBalances,
+              )}
+              className="theme-card-balance w-full"
               valueClassName="text-2xl text-end"
             />
             <StatCard
-              title={`Income · ${formatMonthLabel(month)}`}
-              value={formatYen(summary.incomeTotal)}
-              className="w-full bg-[#eef6f1] text-[#1f3a30]"
+              title={`${copy.income} · ${formatMonthLabel(month, 1, locale)}`}
+              value={formatYen(
+                summary.incomeTotal,
+                preferences.currency,
+                preferences.hideBalances,
+              )}
+              className="theme-surface-soft w-full"
               valueClassName="text-2xl text-end"
             />
             <StatCard
-              title={`Expense · ${formatMonthLabel(month)}`}
-              value={formatYen(summary.expenseTotal)}
-              className="w-full bg-[#e8f1f2] text-[#1f3a30]"
+              title={`${copy.expense} · ${formatMonthLabel(month, 1, locale)}`}
+              value={formatYen(
+                summary.expenseTotal,
+                preferences.currency,
+                preferences.hideBalances,
+              )}
+              className="theme-surface-soft w-full"
               valueClassName="text-2xl text-end"
             />
             <StatCard
-              title="Members"
+              title={copy.members}
               value={String(activeMemberCount)}
-              className="w-full bg-[#f8fcf9] text-[#1b332b]"
+              className="w-full"
               valueClassName="text-2xl text-end"
             />
           </div>
@@ -510,32 +532,32 @@ export default function LobbyDashboardScreen({
               active={activeTab}
               onChange={(value) => setActiveTab(value as LobbyTab)}
               tabs={[
-                { label: "Overview", value: "OVERVIEW" },
-                { label: "Transactions", value: "TRANSACTIONS" },
-                { label: "Members", value: "MEMBERS" },
+                { label: copy.overview, value: "OVERVIEW" },
+                { label: copy.transactions, value: "TRANSACTIONS" },
+                { label: copy.members, value: "MEMBERS" },
               ]}
             />
 
             <div className="flex flex-col gap-2 sm:min-w-[280px]">
-              <p className="px-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#6f8579]">
-                Reporting month
+              <p className="theme-muted px-1 text-[11px] font-semibold uppercase tracking-[0.14em]">
+                {copy.reportingMonth}
               </p>
-              <div className="flex items-center justify-between gap-2 rounded-[1.25rem] border border-[#d9e6de] bg-white/85 p-2 shadow-[0_10px_24px_rgba(24,61,47,0.06)]">
+              <div className="lobby-card flex items-center justify-between gap-2 rounded-[1.25rem] p-2">
                 <button
                   type="button"
                   onClick={() => setMonth(previousMonth)}
-                  className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-[#dbe8e1] bg-[#f8fcf9] text-[#315347] transition hover:bg-[#edf5f0]">
+                  className="theme-button-secondary inline-flex h-10 w-10 items-center justify-center rounded-xl transition">
                   <ChevronLeft size={16} />
                 </button>
 
-                <label className="relative flex min-w-0 flex-1 items-center justify-center gap-2 rounded-xl bg-[#f5faf7] px-3 py-2 text-center">
-                  <CalendarRange size={15} className="shrink-0 text-[#2e5e54]" />
+                <label className="theme-surface-soft relative flex min-w-0 flex-1 items-center justify-center gap-2 rounded-xl px-3 py-2 text-center">
+                  <CalendarRange size={15} className="theme-icon shrink-0" />
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold text-[#173a30]">
-                      {formatMonthLabel(month)}
+                    <p className="theme-heading truncate text-sm font-semibold">
+                      {formatMonthLabel(month, 1, locale)}
                     </p>
-                    <p className="text-[11px] uppercase tracking-[0.12em] text-[#6f8579]">
-                      Select month
+                    <p className="theme-muted text-[11px] uppercase tracking-[0.12em]">
+                      {copy.selectMonth}
                     </p>
                   </div>
                   <input
@@ -550,7 +572,7 @@ export default function LobbyDashboardScreen({
                 <button
                   type="button"
                   onClick={() => setMonth(nextMonth)}
-                  className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-[#dbe8e1] bg-[#f8fcf9] text-[#315347] transition hover:bg-[#edf5f0]">
+                  className="theme-button-secondary inline-flex h-10 w-10 items-center justify-center rounded-xl transition">
                   <ChevronRight size={16} />
                 </button>
               </div>
@@ -566,9 +588,9 @@ export default function LobbyDashboardScreen({
               <section className="grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1fr)_320px] lg:gap-5">
                 <div className="panel-surface rounded-3xl p-4">
                   <div className="flex items-center gap-2 px-1">
-                    <Coins className="text-[#2a5f58]" size={18} />
-                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#486156]">
-                      Recent transactions
+                    <Coins className="theme-icon" size={18} />
+                    <p className="theme-muted text-xs font-semibold uppercase tracking-[0.12em]">
+                      {copy.recentTransactions}
                     </p>
                   </div>
 
@@ -576,15 +598,15 @@ export default function LobbyDashboardScreen({
                     {summary.recentTransactions.map((transaction) => (
                       <div
                         key={transaction.id}
-                        className="rounded-2xl border border-[#d9e6de] bg-white/85 p-3">
+                        className="lobby-card rounded-2xl p-3">
                         <div className="flex items-center justify-between gap-3">
                           <div className="min-w-0">
                             <div className="flex items-center gap-2">
                               <span
                                 className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-semibold ${
                                   transaction.type === "INCOME"
-                                    ? "bg-[#e8f5ef] text-[#1d694e]"
-                                    : "bg-[#fff1e8] text-[#8a4d28]"
+                                    ? "lobby-type-income"
+                                    : "lobby-type-expense"
                                 }`}>
                                 {transaction.type === "INCOME" ? (
                                   <TrendingUp size={12} />
@@ -593,31 +615,35 @@ export default function LobbyDashboardScreen({
                                 )}
                                 {transaction.type}
                               </span>
-                              <p className="truncate font-semibold text-[#173a30]">
+                              <p className="theme-heading truncate font-semibold">
                                 {transaction.category}
                               </p>
                             </div>
-                            <p className="mt-2 text-sm text-[#4a6559]">
+                            <p className="theme-muted mt-2 text-sm">
                               {formatMemberName(transaction.member.user)} |{" "}
-                              {formatIsoDate(transaction.date)}
+                              {formatIsoDate(transaction.date, locale)}
                             </p>
                           </div>
                           <p
                             className={`shrink-0 text-lg font-semibold ${
                               transaction.type === "EXPENSE"
-                                ? "text-[#7a4727]"
-                                : "text-[#1c5b48]"
+                                ? "lobby-accent-expense"
+                                : "lobby-accent-income"
                             }`}>
                             {transaction.type === "EXPENSE" ? "-" : "+"}
-                            {formatYen(transaction.amount)}
+                            {formatYen(
+                              transaction.amount,
+                              preferences.currency,
+                              preferences.hideBalances,
+                            )}
                           </p>
                         </div>
                       </div>
                     ))}
 
                     {!summary.recentTransactions.length ? (
-                      <div className="rounded-xl border border-dashed border-[#cbdcd2] bg-white/70 px-3 py-5 text-center text-sm text-[#5a7166]">
-                        No transactions in this month.
+                      <div className="theme-empty-state rounded-xl px-3 py-5 text-center text-sm">
+                        {copy.noTransactionsMonth}
                       </div>
                     ) : null}
                   </div>
@@ -625,62 +651,74 @@ export default function LobbyDashboardScreen({
 
                 <div className="space-y-3">
                   <div className="panel-surface rounded-3xl p-4">
-                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#486156]">
-                      Top contributors
+                    <p className="theme-muted text-xs font-semibold uppercase tracking-[0.12em]">
+                      {copy.topContributors}
                     </p>
                     <div className="mt-3 space-y-2">
                       {memberSummary.slice(0, 3).map((member) => (
                         <div
                           key={member.memberId}
-                          className="rounded-2xl border border-[#d9e6de] bg-white/80 p-3">
+                          className="lobby-card rounded-2xl p-3">
                           <div className="flex items-center justify-between gap-3">
                             <div className="flex min-w-0 items-center gap-3">
-                              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-[#e8f1ec] text-sm font-semibold text-[#214a3d]">
+                              <div className="theme-surface-soft lobby-accent-income grid h-10 w-10 shrink-0 place-items-center rounded-2xl text-sm font-semibold">
                                 {getMemberInitials({
                                   name: member.name,
                                   email: member.email,
                                 })}
                               </div>
                               <div className="min-w-0">
-                                <p className="truncate font-medium text-[#173a30]">
+                                <p className="theme-heading truncate font-medium">
                                   {member.name ?? member.email}
                                 </p>
-                                <p className="text-xs uppercase tracking-[0.12em] text-[#6f8579]">
+                                <p className="theme-muted text-xs uppercase tracking-[0.12em]">
                                   {member.role}
                                 </p>
                               </div>
                             </div>
                             <div className="text-right">
-                              <p className="text-xs uppercase tracking-[0.12em] text-[#6f8579]">
-                                Net
+                              <p className="theme-muted text-xs uppercase tracking-[0.12em]">
+                                {copy.net}
                               </p>
-                              <p className="text-sm font-semibold text-[#1c5b48]">
-                                {formatYen(member.netTotal)}
+                              <p className="lobby-accent-income text-sm font-semibold">
+                                {formatYen(
+                                  member.netTotal,
+                                  preferences.currency,
+                                  preferences.hideBalances,
+                                )}
                               </p>
                             </div>
                           </div>
                           <div className="mt-3 grid grid-cols-3 gap-2">
-                            <div className="rounded-xl bg-[#eef6f1] px-3 py-2">
-                              <p className="text-[11px] uppercase tracking-[0.12em] text-[#6f8579]">
-                                Income
+                            <div className="theme-surface-soft rounded-xl px-3 py-2">
+                              <p className="theme-muted text-[11px] uppercase tracking-[0.12em]">
+                                {copy.income}
                               </p>
-                              <p className="mt-1 text-sm font-semibold text-[#1c5b48]">
-                                {formatYen(member.incomeTotal)}
-                              </p>
-                            </div>
-                            <div className="rounded-xl bg-[#fff2ea] px-3 py-2">
-                              <p className="text-[11px] uppercase tracking-[0.12em] text-[#6f8579]">
-                                Expense
-                              </p>
-                              <p className="mt-1 text-sm font-semibold text-[#7a4727]">
-                                {formatYen(member.expenseTotal)}
+                              <p className="lobby-accent-income mt-1 text-sm font-semibold">
+                                {formatYen(
+                                  member.incomeTotal,
+                                  preferences.currency,
+                                  preferences.hideBalances,
+                                )}
                               </p>
                             </div>
-                            <div className="rounded-xl bg-[#edf2f4] px-3 py-2">
-                              <p className="text-[11px] uppercase tracking-[0.12em] text-[#6f8579]">
-                                Count
+                            <div className="theme-surface-soft rounded-xl px-3 py-2">
+                              <p className="theme-muted text-[11px] uppercase tracking-[0.12em]">
+                                {copy.expense}
                               </p>
-                              <p className="mt-1 text-sm font-semibold text-[#355246]">
+                              <p className="lobby-accent-expense mt-1 text-sm font-semibold">
+                                {formatYen(
+                                  member.expenseTotal,
+                                  preferences.currency,
+                                  preferences.hideBalances,
+                                )}
+                              </p>
+                            </div>
+                            <div className="theme-surface-soft rounded-xl px-3 py-2">
+                              <p className="theme-muted text-[11px] uppercase tracking-[0.12em]">
+                                {copy.count}
+                              </p>
+                              <p className="theme-text mt-1 text-sm font-semibold">
                                 {member.transactionCount}
                               </p>
                             </div>
@@ -696,18 +734,18 @@ export default function LobbyDashboardScreen({
                       className="panel-surface rounded-3xl p-4">
                       <div className="flex items-center justify-between gap-3">
                         <div>
-                          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#486156]">
-                            Lobby settings
+                          <p className="theme-muted text-xs font-semibold uppercase tracking-[0.12em]">
+                            {copy.lobbySettings}
                           </p>
-                          <p className="mt-1 text-sm text-[#4a6559]">
-                            Rename or update the lobby description.
+                          <p className="theme-muted mt-1 text-sm">
+                            {copy.lobbySettingsDescription}
                           </p>
                         </div>
                         <button
                           type="button"
                           onClick={() => setEditingLobby((current) => !current)}
-                          className="rounded-lg border border-[#cadcd1] bg-white/70 px-3 py-2 text-xs font-medium text-[#365447] hover:bg-[#edf5f0]">
-                          {editingLobby ? "Close" : "Edit"}
+                          className="theme-button-secondary rounded-lg px-3 py-2 text-xs font-medium">
+                          {editingLobby ? copy.close : copy.edit}
                         </button>
                       </div>
 
@@ -722,8 +760,8 @@ export default function LobbyDashboardScreen({
                                 name: event.target.value,
                               }))
                             }
-                            className="w-full rounded-xl border border-[#d5e3da] bg-white px-3 py-2 text-sm text-[#1d3b30] outline-none"
-                            placeholder="Lobby name"
+                            className="theme-input w-full rounded-xl px-3 py-2 text-sm outline-none"
+                            placeholder={copy.lobbyName}
                           />
                           <textarea
                             value={lobbyForm.description}
@@ -734,14 +772,14 @@ export default function LobbyDashboardScreen({
                               }))
                             }
                             rows={3}
-                            className="w-full resize-none rounded-xl border border-[#d5e3da] bg-white px-3 py-2 text-sm text-[#1d3b30] outline-none"
-                            placeholder="Description"
+                            className="theme-input w-full resize-none rounded-xl px-3 py-2 text-sm outline-none"
+                            placeholder={copy.lobbyDescription}
                           />
                           <button
                             type="submit"
                             disabled={updatingLobby}
-                            className="w-full rounded-xl bg-linear-to-r from-[#2f8f70] to-[#2a7262] px-3 py-2 text-sm font-semibold text-white shadow-[0_10px_22px_rgba(35,108,86,0.22)] disabled:cursor-not-allowed disabled:opacity-70">
-                            {updatingLobby ? "Saving..." : "Save lobby"}
+                            className="theme-button-primary w-full rounded-xl px-3 py-2 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-70">
+                            {updatingLobby ? copy.saving : copy.saveLobby}
                           </button>
                         </div>
                       ) : null}
@@ -752,44 +790,52 @@ export default function LobbyDashboardScreen({
 
               <section className="grid grid-cols-1 gap-3 lg:grid-cols-2 lg:gap-5">
                 <div className="panel-surface rounded-3xl p-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#486156]">
-                    Income categories
+                  <p className="theme-muted text-xs font-semibold uppercase tracking-[0.12em]">
+                    {copy.incomeCategories}
                   </p>
                   <div className="mt-3 space-y-2">
                     {summary.incomeByCategory.map((item) => (
                       <StatCard
                         key={`income-${item.category}`}
                         title={item.category}
-                        value={formatYen(item.amount)}
-                        className="w-full bg-[#eef6f1] text-[#1f3a30]"
+                        value={formatYen(
+                          item.amount,
+                          preferences.currency,
+                          preferences.hideBalances,
+                        )}
+                        className="theme-surface-soft w-full"
                         valueClassName="text-xl text-end"
                       />
                     ))}
                     {!summary.incomeByCategory.length ? (
-                      <div className="rounded-xl border border-dashed border-[#cbdcd2] bg-white/70 px-3 py-5 text-center text-sm text-[#5a7166]">
-                        No income categories yet.
+                      <div className="theme-empty-state rounded-xl px-3 py-5 text-center text-sm">
+                        {copy.noIncomeCategories}
                       </div>
                     ) : null}
                   </div>
                 </div>
 
                 <div className="panel-surface rounded-3xl p-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#486156]">
-                    Expense categories
+                  <p className="theme-muted text-xs font-semibold uppercase tracking-[0.12em]">
+                    {copy.expenseCategories}
                   </p>
                   <div className="mt-3 space-y-2">
                     {summary.expenseByCategory.map((item) => (
                       <StatCard
                         key={`expense-${item.category}`}
                         title={item.category}
-                        value={formatYen(item.amount)}
-                        className="w-full bg-[#e8f1f2] text-[#1f3a30]"
+                        value={formatYen(
+                          item.amount,
+                          preferences.currency,
+                          preferences.hideBalances,
+                        )}
+                        className="theme-surface-soft w-full"
                         valueClassName="text-xl text-end"
                       />
                     ))}
                     {!summary.expenseByCategory.length ? (
-                      <div className="rounded-xl border border-dashed border-[#cbdcd2] bg-white/70 px-3 py-5 text-center text-sm text-[#5a7166]">
-                        No expense categories yet.
+                      <div className="theme-empty-state rounded-xl px-3 py-5 text-center text-sm">
+                        {copy.noExpenseCategories}
                       </div>
                     ) : null}
                   </div>
@@ -802,9 +848,9 @@ export default function LobbyDashboardScreen({
             <section className="panel-surface rounded-3xl px-4 py-5">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-center gap-2">
-                  <ReceiptText className="text-[#2a5f58]" size={18} />
-                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#486156]">
-                    Lobby transactions
+                  <ReceiptText className="theme-icon" size={18} />
+                  <p className="theme-muted text-xs font-semibold uppercase tracking-[0.12em]">
+                    {copy.lobbyTransactions}
                   </p>
                 </div>
 
@@ -816,10 +862,14 @@ export default function LobbyDashboardScreen({
                       onClick={() => setTransactionFilter(filter)}
                       className={`rounded-lg px-3 py-2 text-xs font-semibold ${
                         transactionFilter === filter
-                          ? "bg-[#215c54] text-white shadow-[0_8px_18px_rgba(26,83,73,0.25)]"
-                          : "bg-[#edf5f0] text-[#355246] hover:bg-[#dcebe2]"
+                          ? "theme-chip theme-chip-active"
+                          : "theme-chip"
                       }`}>
-                      {filter === "ALL" ? "All" : filter}
+                      {filter === "ALL"
+                        ? copy.all
+                        : filter === "INCOME"
+                          ? copy.income
+                          : copy.expense}
                     </button>
                   ))}
                 </div>
@@ -829,15 +879,15 @@ export default function LobbyDashboardScreen({
                 {filteredTransactions.map((transaction) => (
                   <div
                     key={transaction.id}
-                    className="rounded-[1.65rem] border border-[#d9e6de] bg-white/90 p-4 shadow-[0_10px_24px_rgba(19,40,30,0.05)]">
+                    className="lobby-card rounded-[1.65rem] p-4">
                     <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                       <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
                           <span
                             className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold ${
                               transaction.type === "EXPENSE"
-                                ? "bg-[#fff1e8] text-[#8a4d28]"
-                                : "bg-[#e8f5ef] text-[#1d694e]"
+                                ? "lobby-type-expense"
+                                : "lobby-type-income"
                             }`}>
                             {transaction.type === "EXPENSE" ? (
                               <TrendingDown size={12} />
@@ -846,14 +896,14 @@ export default function LobbyDashboardScreen({
                             )}
                             {transaction.type}
                           </span>
-                          <p className="font-semibold text-[#173a30]">{transaction.category}</p>
+                          <p className="theme-heading font-semibold">{transaction.category}</p>
                         </div>
-                        <p className="mt-1 text-sm text-[#4a6559]">
+                        <p className="theme-muted mt-1 text-sm">
                           {formatMemberName(transaction.member.user)} |{" "}
-                          {formatIsoDate(transaction.date)}
+                          {formatIsoDate(transaction.date, locale)}
                         </p>
                         {transaction.description ? (
-                          <p className="mt-1 text-sm text-[#4a6559]">
+                          <p className="theme-muted mt-1 text-sm">
                             {transaction.description}
                           </p>
                         ) : null}
@@ -863,11 +913,15 @@ export default function LobbyDashboardScreen({
                         <p
                           className={`text-lg font-semibold ${
                             transaction.type === "EXPENSE"
-                              ? "text-[#7a4727]"
-                              : "text-[#1c5b48]"
+                              ? "lobby-accent-expense"
+                              : "lobby-accent-income"
                           }`}>
                           {transaction.type === "EXPENSE" ? "-" : "+"}
-                          {formatYen(transaction.amount)}
+                          {formatYen(
+                            transaction.amount,
+                            preferences.currency,
+                            preferences.hideBalances,
+                          )}
                         </p>
 
                         {isOwner ? (
@@ -875,15 +929,15 @@ export default function LobbyDashboardScreen({
                             <button
                               type="button"
                               onClick={() => handleTransactionEdit(transaction)}
-                              className="rounded-lg border border-[#cadcd1] bg-white/70 px-3 py-2 text-xs font-medium text-[#365447] hover:bg-[#edf5f0]">
-                              Edit
+                              className="theme-button-secondary rounded-lg px-3 py-2 text-xs font-medium">
+                              {copy.edit}
                             </button>
                             <button
                               type="button"
                               onClick={() => void handleTransactionDelete(transaction.id)}
                               disabled={transactionSubmitting}
-                              className="rounded-lg border border-[#ecd1c7] bg-[#fff4f1] px-3 py-2 text-xs font-medium text-[#8d3d2f] hover:bg-[#ffe8e1] disabled:cursor-not-allowed disabled:opacity-70">
-                              Delete
+                              className="theme-status-error rounded-lg px-3 py-2 text-xs font-medium disabled:cursor-not-allowed disabled:opacity-70">
+                              {copy.delete}
                             </button>
                           </div>
                         ) : null}
@@ -893,8 +947,8 @@ export default function LobbyDashboardScreen({
                 ))}
 
                 {!filteredTransactions.length ? (
-                  <div className="rounded-xl border border-dashed border-[#cbdcd2] bg-white/70 px-3 py-5 text-center text-sm text-[#5a7166]">
-                    No transactions in this filter.
+                  <div className="theme-empty-state rounded-xl px-3 py-5 text-center text-sm">
+                    {copy.noTransactions}
                   </div>
                 ) : null}
               </div>
@@ -904,9 +958,9 @@ export default function LobbyDashboardScreen({
           {activeTab === "MEMBERS" ? (
             <section className="panel-surface rounded-3xl px-4 py-5">
               <div className="flex items-center gap-2">
-                <Users className="text-[#2a5f58]" size={18} />
-                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#486156]">
-                  Lobby members
+                <Users className="theme-icon" size={18} />
+                <p className="theme-muted text-xs font-semibold uppercase tracking-[0.12em]">
+                  {copy.lobbyMembers}
                 </p>
               </div>
 
@@ -914,24 +968,24 @@ export default function LobbyDashboardScreen({
                 {members.map((member) => (
                   <div
                     key={member.id}
-                    className="rounded-[1.65rem] border border-[#d9e6de] bg-white/90 p-4 shadow-[0_10px_24px_rgba(19,40,30,0.05)]">
+                    className="lobby-card rounded-[1.65rem] p-4">
                     <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                       <div className="flex min-w-0 items-center gap-3">
-                        <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-[#e8f1ec] text-sm font-semibold text-[#214a3d]">
+                        <div className="theme-surface-soft lobby-accent-income grid h-11 w-11 shrink-0 place-items-center rounded-2xl text-sm font-semibold">
                           {getMemberInitials(member.user)}
                         </div>
                         <div className="min-w-0">
-                          <p className="truncate font-semibold text-[#173a30]">
+                          <p className="theme-heading truncate font-semibold">
                             {formatMemberName(member.user)}
                           </p>
-                          <p className="mt-1 truncate text-sm text-[#4a6559]">
+                          <p className="theme-muted mt-1 truncate text-sm">
                             {member.user.email}
                           </p>
                           <div className="mt-2 flex flex-wrap gap-2">
-                            <span className="rounded-full bg-[#eef6f1] px-2.5 py-1 text-[11px] font-semibold text-[#214a3d]">
+                            <span className="lobby-chip-owner rounded-full px-2.5 py-1 text-[11px] font-semibold">
                               {member.role}
                             </span>
-                            <span className="rounded-full bg-[#edf2f4] px-2.5 py-1 text-[11px] font-semibold text-[#4d6571]">
+                            <span className="lobby-chip-muted rounded-full px-2.5 py-1 text-[11px] font-semibold">
                               {member.status}
                             </span>
                           </div>
@@ -943,8 +997,8 @@ export default function LobbyDashboardScreen({
                           type="button"
                           onClick={() => void handleMemberDelete(member.id)}
                           disabled={memberSubmitting}
-                          className="rounded-lg border border-[#ecd1c7] bg-[#fff4f1] px-3 py-2 text-xs font-medium text-[#8d3d2f] hover:bg-[#ffe8e1] disabled:cursor-not-allowed disabled:opacity-70">
-                          Remove
+                          className="theme-status-error rounded-lg px-3 py-2 text-xs font-medium disabled:cursor-not-allowed disabled:opacity-70">
+                          {copy.remove}
                         </button>
                       ) : null}
                     </div>
@@ -952,8 +1006,8 @@ export default function LobbyDashboardScreen({
                 ))}
 
                 {!members.length ? (
-                  <div className="rounded-xl border border-dashed border-[#cbdcd2] bg-white/70 px-3 py-5 text-center text-sm text-[#5a7166]">
-                    No members found.
+                  <div className="theme-empty-state rounded-xl px-3 py-5 text-center text-sm">
+                    {copy.noMembersFound}
                   </div>
                 ) : null}
               </div>
@@ -963,31 +1017,31 @@ export default function LobbyDashboardScreen({
 
         <aside className="order-2 min-w-0 xl:sticky xl:top-6 xl:h-fit xl:self-start">
           <div className="panel-surface relative overflow-hidden rounded-3xl p-4">
-            <div className="absolute inset-x-0 top-0 h-24 bg-linear-to-b from-[#eaf5ef] to-transparent" />
+            <div className="theme-surface-soft absolute inset-x-0 top-0 h-24 opacity-45" />
             <div className="flex items-center gap-2">
               {activeTab === "MEMBERS" ? (
-                <UserPlus className="text-[#2a5f58]" size={18} />
+                <UserPlus className="theme-icon" size={18} />
               ) : (
-                <ArrowUpRight className="text-[#2a5f58]" size={18} />
+                <ArrowUpRight className="theme-icon" size={18} />
               )}
-              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#486156]">
+              <p className="theme-muted text-xs font-semibold uppercase tracking-[0.12em]">
                 {actionPanelTitle}
               </p>
             </div>
-            <p className="relative mt-2 text-sm leading-6 text-[#567065]">
+            <p className="theme-muted relative mt-2 text-sm leading-6">
               {activeTab === "MEMBERS"
-                ? "Manage who participates in the shared monthly fund."
+                ? copy.manageParticipants
                 : editingTransactionId
-                  ? "Update the selected shared-fund transaction."
-                  : "Record a new income or expense against the lobby balance."}
+                  ? copy.updateSelectedTransaction
+                  : copy.recordNewTransaction}
             </p>
 
             {activeTab === "MEMBERS" ? (
               isOwner ? (
                 <form onSubmit={handleMemberSubmit} className="mt-4 space-y-3">
                   <label className="block">
-                    <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.12em] text-[#547064]">
-                      Member email
+                    <span className="theme-muted mb-2 block text-xs font-semibold uppercase tracking-[0.12em]">
+                      {copy.memberEmail}
                     </span>
                     <input
                       type="email"
@@ -999,16 +1053,16 @@ export default function LobbyDashboardScreen({
                         }))
                       }
                       placeholder="member@example.com"
-                      className="w-full rounded-xl border border-[#d5e3da] bg-white px-3 py-2 text-sm text-[#1d3b30] outline-none"
+                      className="theme-input w-full rounded-xl px-3 py-2 text-sm outline-none"
                     />
                   </label>
 
-                  <p className="text-xs leading-5 text-[#5c7367]">
-                    The user must already have an account in the app.
+                  <p className="theme-muted text-xs leading-5">
+                    {copy.userMustExist}
                   </p>
 
-                  <div className="rounded-xl border border-[#d5e3da] bg-[#f4faf6] p-2.5">
-                    <p className="text-xs uppercase tracking-[0.12em] text-[#547064]">Role</p>
+                  <div className="theme-field-shell rounded-xl p-2.5">
+                    <p className="theme-muted text-xs uppercase tracking-[0.12em]">{copy.role}</p>
                     <div className="mt-2 grid grid-cols-2 gap-2">
                       {(["MEMBER", "OWNER"] as const).map((role) => (
                         <button
@@ -1022,8 +1076,8 @@ export default function LobbyDashboardScreen({
                           }
                           className={`rounded-lg px-3 py-2 text-sm font-medium ${
                             memberForm.role === role
-                              ? "bg-[#1e4f48] text-white"
-                              : "border border-[#d5e3da] bg-white text-[#2f4b41]"
+                              ? "theme-chip theme-chip-active"
+                              : "theme-button-secondary"
                           }`}>
                           {role}
                         </button>
@@ -1034,21 +1088,21 @@ export default function LobbyDashboardScreen({
                   <button
                     type="submit"
                     disabled={memberSubmitting}
-                    className="w-full rounded-xl bg-linear-to-r from-[#2f8f70] to-[#2a7262] px-3 py-2 text-sm font-semibold text-white shadow-[0_10px_22px_rgba(35,108,86,0.22)] disabled:cursor-not-allowed disabled:opacity-70">
-                    {memberSubmitting ? "Adding..." : "Add member"}
+                    className="theme-button-primary w-full rounded-xl px-3 py-2 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-70">
+                    {memberSubmitting ? copy.adding : copy.addMember}
                   </button>
                 </form>
               ) : (
-                <div className="mt-4 rounded-xl border border-dashed border-[#cbdcd2] bg-white/70 px-3 py-5 text-center text-sm text-[#5a7166]">
-                  Only lobby owners can add or remove members.
+                <div className="theme-empty-state mt-4 rounded-xl px-3 py-5 text-center text-sm">
+                  {copy.onlyOwnersManageMembers}
                 </div>
               )
             ) : (
               <form onSubmit={handleTransactionSubmit} className="mt-4 space-y-3">
                 {isOwner ? (
-                  <div className="rounded-xl border border-[#d5e3da] bg-[#f4faf6] p-2.5">
-                    <p className="text-xs uppercase tracking-[0.12em] text-[#547064]">
-                      Member
+                  <div className="theme-field-shell rounded-xl p-2.5">
+                    <p className="theme-muted text-xs uppercase tracking-[0.12em]">
+                      {copy.member}
                     </p>
                     <select
                       value={transactionForm.memberId}
@@ -1058,7 +1112,7 @@ export default function LobbyDashboardScreen({
                           memberId: event.target.value,
                         }))
                       }
-                      className="mt-1 w-full rounded-lg border border-[#d5e3da] bg-white px-2.5 py-2 text-sm text-[#1d3b30] outline-none">
+                      className="theme-input mt-1 w-full rounded-lg px-2.5 py-2 text-sm outline-none">
                       {members.map((member) => (
                         <option key={member.id} value={member.id}>
                           {formatMemberName(member.user)}
@@ -1067,13 +1121,14 @@ export default function LobbyDashboardScreen({
                     </select>
                   </div>
                 ) : currentMember ? (
-                  <div className="rounded-xl border border-[#d5e3da] bg-[#f4faf6] p-2.5 text-sm text-[#355246]">
-                    Recording as <span className="font-semibold">{formatMemberName(currentMember.user)}</span>
+                  <div className="theme-field-shell theme-text rounded-xl p-2.5 text-sm">
+                    {copy.recordingAs}{" "}
+                    <span className="font-semibold">{formatMemberName(currentMember.user)}</span>
                   </div>
                 ) : null}
 
-                <div className="rounded-xl border border-[#d5e3da] bg-[#f4faf6] p-2.5">
-                  <p className="text-xs uppercase tracking-[0.12em] text-[#547064]">Type</p>
+                <div className="theme-field-shell rounded-xl p-2.5">
+                  <p className="theme-muted text-xs uppercase tracking-[0.12em]">{copy.type}</p>
                   <div className="mt-2 grid grid-cols-2 gap-2">
                     {(["INCOME", "EXPENSE"] as const).map((type) => (
                       <button
@@ -1087,10 +1142,10 @@ export default function LobbyDashboardScreen({
                         }
                         className={`rounded-lg px-3 py-2 text-sm font-medium ${
                           transactionForm.type === type
-                            ? "bg-[#1e4f48] text-white"
-                            : "border border-[#d5e3da] bg-white text-[#2f4b41]"
+                            ? "theme-chip theme-chip-active"
+                            : "theme-button-secondary"
                         }`}>
-                        {type}
+                        {type === "INCOME" ? copy.income : copy.expense}
                       </button>
                     ))}
                   </div>
@@ -1105,8 +1160,8 @@ export default function LobbyDashboardScreen({
                       category: event.target.value,
                     }))
                   }
-                  placeholder="Category"
-                  className="w-full rounded-xl border border-[#d5e3da] bg-white px-3 py-2 text-sm text-[#1d3b30] outline-none"
+                  placeholder={copy.category}
+                  className="theme-input w-full rounded-xl px-3 py-2 text-sm outline-none"
                 />
 
                 <input
@@ -1119,26 +1174,26 @@ export default function LobbyDashboardScreen({
                       amount: Number(event.target.value),
                     }))
                   }
-                  placeholder="Amount"
-                  className="w-full rounded-xl border border-[#d5e3da] bg-white px-3 py-2 text-sm text-[#1d3b30] outline-none"
+                  placeholder={copy.price}
+                  className="theme-input w-full rounded-xl px-3 py-2 text-sm outline-none"
                 />
 
-                <label className="relative flex items-center justify-between gap-3 rounded-xl border border-[#d5e3da] bg-white px-3 py-2 text-left shadow-[0_10px_22px_rgba(24,61,47,0.04)]">
+                <label className="theme-card-default relative flex items-center justify-between gap-3 rounded-xl px-3 py-2 text-left">
                   <div className="flex min-w-0 items-center gap-3">
-                    <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-[#eef6f1] text-[#2e5e54]">
+                    <div className="theme-surface-soft theme-icon grid h-9 w-9 shrink-0 place-items-center rounded-xl">
                       <CalendarDays size={16} />
                     </div>
                     <div className="min-w-0">
-                      <p className="text-xs uppercase tracking-[0.12em] text-[#6f8579]">
-                        Transaction date
+                      <p className="theme-muted text-xs uppercase tracking-[0.12em]">
+                        {copy.transactionDate}
                       </p>
-                      <p className="truncate text-sm font-semibold text-[#173a30]">
-                        {formatDateLabel(transactionForm.date)}
+                      <p className="theme-heading truncate text-sm font-semibold">
+                        {formatDateLabel(transactionForm.date, locale)}
                       </p>
                     </div>
                   </div>
-                  <p className="shrink-0 text-[11px] uppercase tracking-[0.12em] text-[#6f8579]">
-                    Change
+                  <p className="theme-muted shrink-0 text-[11px] uppercase tracking-[0.12em]">
+                    {copy.change}
                   </p>
                   <input
                     type="date"
@@ -1163,41 +1218,40 @@ export default function LobbyDashboardScreen({
                     }))
                   }
                   rows={4}
-                  placeholder="Description"
-                  className="w-full resize-none rounded-xl border border-[#d5e3da] bg-white px-3 py-2 text-sm text-[#1d3b30] outline-none"
+                  placeholder={copy.description}
+                  className="theme-input w-full resize-none rounded-xl px-3 py-2 text-sm outline-none"
                 />
 
                 <button
                   type="submit"
                   disabled={transactionSubmitting || (!isOwner && !currentMember)}
-                  className="w-full rounded-xl bg-linear-to-r from-[#2f8f70] to-[#2a7262] px-3 py-2 text-sm font-semibold text-white shadow-[0_10px_22px_rgba(35,108,86,0.22)] disabled:cursor-not-allowed disabled:opacity-70">
+                  className="theme-button-primary w-full rounded-xl px-3 py-2 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-70">
                   {transactionSubmitting
-                    ? "Saving..."
+                    ? copy.saving
                     : editingTransactionId
-                      ? "Save transaction"
-                      : "Add transaction"}
+                      ? copy.saveTransaction
+                      : copy.addTransactionLobby}
                 </button>
 
                 {editingTransactionId ? (
                   <button
                     type="button"
                     onClick={resetTransactionForm}
-                    className="w-full rounded-xl border border-[#cadcd1] bg-white/70 px-3 py-2 text-sm font-medium text-[#365447] hover:bg-[#edf5f0]">
-                    Cancel edit
+                    className="theme-button-secondary w-full rounded-xl px-3 py-2 text-sm font-medium">
+                    {copy.cancelEdit}
                   </button>
                 ) : null}
 
                 {!isOwner ? (
-                  <p className="text-xs leading-5 text-[#5a7166]">
-                    Members can create transactions for themselves. Owners can edit or
-                    delete transactions for the whole lobby.
+                  <p className="theme-muted text-xs leading-5">
+                    {copy.memberTransactionHelp}
                   </p>
                 ) : null}
               </form>
             )}
 
             {error ? (
-              <div className="mt-4 rounded-2xl border border-[#f0c9a6] bg-[#fff7ef] p-4 text-sm leading-6 text-[#7a4a1d]">
+              <div className="theme-status-warning mt-4 rounded-2xl p-4 text-sm leading-6">
                 {error}
               </div>
             ) : null}

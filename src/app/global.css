@@ -433,3 +433,58 @@ button:active {
   border: 1px solid var(--surface-line);
   background: var(--surface-soft);
 }
+
+.lobby-hero {
+  border: 1px solid var(--surface-line);
+  background:
+    radial-gradient(140px 140px at 100% 0%, color-mix(in srgb, var(--button-primary-start) 18%, transparent), transparent 70%),
+    radial-gradient(120px 120px at 0% 100%, color-mix(in srgb, var(--page-orb-2) 60%, transparent), transparent 72%),
+    linear-gradient(135deg, color-mix(in srgb, var(--surface-solid) 88%, transparent), transparent 70%);
+}
+
+.lobby-card {
+  border: 1px solid var(--surface-line);
+  background: var(--surface-elevated);
+  box-shadow: 0 10px 24px rgba(19, 40, 30, 0.06);
+}
+
+.lobby-card-soft {
+  border: 1px solid var(--surface-line);
+  background: var(--surface-soft);
+}
+
+.lobby-chip {
+  border: 1px solid var(--chip-border);
+  background: var(--button-secondary-bg);
+  color: var(--muted);
+}
+
+.lobby-chip-owner {
+  border: 1px solid var(--chip-border);
+  background: color-mix(in srgb, var(--button-primary-start) 16%, var(--surface-solid));
+  color: color-mix(in srgb, var(--button-primary-end) 70%, var(--foreground));
+}
+
+.lobby-chip-muted {
+  border: 1px solid var(--surface-line);
+  background: color-mix(in srgb, var(--surface-soft) 88%, var(--surface-solid));
+  color: var(--muted);
+}
+
+.lobby-type-income {
+  background: color-mix(in srgb, var(--button-primary-start) 14%, var(--surface-solid));
+  color: color-mix(in srgb, var(--button-primary-end) 70%, var(--foreground));
+}
+
+.lobby-type-expense {
+  background: color-mix(in srgb, var(--status-warning-text) 12%, var(--surface-solid));
+  color: color-mix(in srgb, var(--status-warning-text) 82%, var(--foreground));
+}
+
+.lobby-accent-income {
+  color: color-mix(in srgb, var(--button-primary-end) 72%, var(--foreground));
+}
+
+.lobby-accent-expense {
+  color: color-mix(in srgb, var(--status-warning-text) 85%, var(--foreground));
+}

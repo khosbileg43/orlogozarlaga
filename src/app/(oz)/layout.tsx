@@ -100,10 +100,7 @@ export default function OzLayout({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <div
-      className={`min-h-screen px-3 py-4 md:px-5 md:py-6 ${
-        isLobbySection ? "theme-light-lock" : ""
-      }`}>
+    <div className="min-h-screen px-3 py-4 md:px-5 md:py-6">
       <div className="mx-auto flex w-full max-w-375 flex-col gap-4 lg:flex-row lg:items-start lg:gap-6">
         <aside className="panel-surface flex flex-col justify-between rounded-3xl px-4 py-5 lg:sticky lg:top-6 lg:h-[calc(100vh-3rem)] lg:w-72 lg:px-5">
           <div>
@@ -134,42 +131,40 @@ export default function OzLayout({ children }: { children: React.ReactNode }) {
               })}
             </div>
 
-            {!isLobbySection && (
-              <div className="theme-user-card mt-4 rounded-2xl p-2">
-                <div className="mb-2 flex items-center justify-between px-1">
-                  <span className="theme-muted text-[11px] font-semibold uppercase tracking-[0.16em]">
-                    {copy.appearance}
-                  </span>
-                  <span className="theme-muted text-[11px]">
-                    {themeMode === "dark" ? copy.dark : copy.light}
-                  </span>
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => updatePreferences({ theme: "LIGHT" })}
-                    className={`flex items-center justify-center gap-2 rounded-xl px-3 py-2 text-sm font-medium ${
-                      themeMode === "light"
-                        ? "theme-chip theme-chip-active"
-                        : "theme-button-secondary"
-                    }`}>
-                    <SunMedium size={16} />
-                    {copy.light}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => updatePreferences({ theme: "DARK" })}
-                    className={`flex items-center justify-center gap-2 rounded-xl px-3 py-2 text-sm font-medium ${
-                      themeMode === "dark"
-                        ? "theme-chip theme-chip-active"
-                        : "theme-button-secondary"
-                    }`}>
-                    <MoonStar size={16} />
-                    {copy.dark}
-                  </button>
-                </div>
+            <div className="theme-user-card mt-4 rounded-2xl p-2">
+              <div className="mb-2 flex items-center justify-between px-1">
+                <span className="theme-muted text-[11px] font-semibold uppercase tracking-[0.16em]">
+                  {copy.appearance}
+                </span>
+                <span className="theme-muted text-[11px]">
+                  {themeMode === "dark" ? copy.dark : copy.light}
+                </span>
               </div>
-            )}
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => updatePreferences({ theme: "LIGHT" })}
+                  className={`flex items-center justify-center gap-2 rounded-xl px-3 py-2 text-sm font-medium ${
+                    themeMode === "light"
+                      ? "theme-chip theme-chip-active"
+                      : "theme-button-secondary"
+                  }`}>
+                  <SunMedium size={16} />
+                  {copy.light}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => updatePreferences({ theme: "DARK" })}
+                  className={`flex items-center justify-center gap-2 rounded-xl px-3 py-2 text-sm font-medium ${
+                    themeMode === "dark"
+                      ? "theme-chip theme-chip-active"
+                      : "theme-button-secondary"
+                  }`}>
+                  <MoonStar size={16} />
+                  {copy.dark}
+                </button>
+              </div>
+            </div>
           </div>
 
           <div className="theme-user-card mt-6 flex items-center justify-between gap-3 rounded-2xl px-3 py-2.5">
@@ -184,7 +179,7 @@ export default function OzLayout({ children }: { children: React.ReactNode }) {
               onClick={handleLogout}
               disabled={loggingOut}
               className="theme-button-secondary shrink-0 cursor-pointer rounded-xl px-3 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-60">
-              {loggingOut ? "Logging out..." : "Logout"}
+              {loggingOut ? copy.loggingOut : copy.logout}
             </button>
           </div>
         </aside>

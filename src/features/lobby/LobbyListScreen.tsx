@@ -17,17 +17,22 @@ import InputField from "@/components/ui/InputField";
 import { createLobby, listLobbies } from "./api";
 import type { LobbyListItem } from "./types";
 import { formatYen } from "../dashboard/format";
+import { getCopy } from "../settings/copy";
+import { useUserPreferences } from "../settings/useUserPreferences";
 
 function getRoleTone(role: LobbyListItem["role"]) {
   if (role === "OWNER") {
-    return "bg-[#eef6f1] text-[#214a3d] border-[#d5e4da]";
+    return "lobby-chip-owner";
   }
 
-  return "bg-[#edf2f4] text-[#355246] border-[#d5dfe3]";
+  return "lobby-chip-muted";
 }
 
 export default function LobbyListScreen() {
   const router = useRouter();
+  const { preferences } = useUserPreferences();
+  const copy = getCopy(preferences.language);
+  const locale = preferences.language === "MN" ? "mn-MN" : "en-US";
   const [lobbies, setLobbies] = useState<LobbyListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -94,56 +99,55 @@ export default function LobbyListScreen() {
 
   return (
     <div className="space-y-4 lg:space-y-5">
-      <section className="panel-surface relative overflow-hidden rounded-3xl border border-[#d9e6de] px-5 py-6 sm:px-6 sm:py-7">
-        <div className="absolute inset-0 bg-linear-to-br from-[#fbfffd] via-transparent to-[#ddeee4]" />
-        <div className="absolute -right-16 top-0 h-44 w-44 rounded-full bg-[#d8ece1]/70 blur-2xl" />
-        <div className="absolute -left-10 bottom-0 h-32 w-32 rounded-full bg-[#d6e7eb]/60 blur-2xl" />
+      <section className="panel-surface lobby-hero relative overflow-hidden rounded-3xl px-5 py-6 sm:px-6 sm:py-7">
         <div className="relative flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-3xl">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="inline-flex items-center gap-2 rounded-full border border-[#d2e2d9] bg-white/70 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#5d766a]">
+              <span className="lobby-chip inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em]">
                 <Landmark size={13} />
-                Shared funds
+                {copy.sharedFunds}
               </span>
-              <span className="inline-flex items-center gap-2 rounded-full border border-[#d2e2d9] bg-white/70 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#5d766a]">
+              <span className="lobby-chip inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em]">
                 <Sparkles size={13} />
-                Lobby workspace
+                {copy.lobbyWorkspace}
               </span>
             </div>
-            <h1 className="mt-3 text-3xl font-semibold leading-tight tracking-tight text-[#173a30] sm:text-4xl">
-              Shared money, one dashboard per group.
+            <h1 className="theme-heading mt-3 text-3xl font-semibold leading-tight tracking-tight sm:text-4xl">
+              {copy.sharedMoneyTitle}
             </h1>
-            <p className="mt-3 max-w-2xl text-sm leading-6 text-[#4a6559] sm:text-base">
-              Each lobby keeps one shared balance, one member roster, and one transaction
-              history. Open a fund, review this month, and manage contributions and
-              spending from the same dashboard shell as My Pocket.
+            <p className="theme-muted mt-3 max-w-2xl text-sm leading-6 sm:text-base">
+              {copy.sharedMoneyDescription}
             </p>
           </div>
 
           <div className="grid min-w-full grid-cols-1 gap-3 sm:min-w-0 sm:grid-cols-3">
-            <div className="rounded-[1.5rem] border border-[#d8e4dd] bg-white/80 p-4 shadow-[0_10px_26px_rgba(24,61,47,0.06)]">
-              <div className="flex items-center gap-2 text-[#2e5e54]">
+            <div className="lobby-card rounded-[1.5rem] p-4">
+              <div className="theme-icon flex items-center gap-2">
                 <Landmark size={16} />
-                <p className="text-xs uppercase tracking-[0.12em] text-[#6f8579]">Lobbies</p>
+                <p className="theme-muted text-xs uppercase tracking-[0.12em]">{copy.lobbies}</p>
               </div>
-              <p className="mt-3 text-2xl font-semibold text-[#173a30]">{lobbies.length}</p>
+              <p className="theme-heading mt-3 text-2xl font-semibold">{lobbies.length}</p>
             </div>
-            <div className="rounded-[1.5rem] border border-[#d8e4dd] bg-white/80 p-4 shadow-[0_10px_26px_rgba(24,61,47,0.06)]">
-              <div className="flex items-center gap-2 text-[#2e5e54]">
+            <div className="lobby-card rounded-[1.5rem] p-4">
+              <div className="theme-icon flex items-center gap-2">
                 <Users size={16} />
-                <p className="text-xs uppercase tracking-[0.12em] text-[#6f8579]">Members</p>
+                <p className="theme-muted text-xs uppercase tracking-[0.12em]">{copy.members}</p>
               </div>
-              <p className="mt-3 text-2xl font-semibold text-[#173a30]">
+              <p className="theme-heading mt-3 text-2xl font-semibold">
                 {lobbies.reduce((sum, lobby) => sum + lobby.memberCount, 0)}
               </p>
             </div>
-            <div className="rounded-[1.5rem] border border-[#d8e4dd] bg-white/80 p-4 shadow-[0_10px_26px_rgba(24,61,47,0.06)]">
-              <div className="flex items-center gap-2 text-[#2e5e54]">
+            <div className="lobby-card rounded-[1.5rem] p-4">
+              <div className="theme-icon flex items-center gap-2">
                 <Wallet size={16} />
-                <p className="text-xs uppercase tracking-[0.12em] text-[#6f8579]">Balance</p>
+                <p className="theme-muted text-xs uppercase tracking-[0.12em]">{copy.balance}</p>
               </div>
-              <p className="mt-3 text-2xl font-semibold text-[#173a30]">
-                {formatYen(lobbies.reduce((sum, lobby) => sum + lobby.balance, 0))}
+              <p className="theme-heading mt-3 text-2xl font-semibold">
+                {formatYen(
+                  lobbies.reduce((sum, lobby) => sum + lobby.balance, 0),
+                  preferences.currency,
+                  preferences.hideBalances,
+                )}
               </p>
             </div>
           </div>
@@ -153,19 +157,18 @@ export default function LobbyListScreen() {
       <section className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start">
         <div className="grid gap-4 xl:grid-cols-2">
           {!loading && lobbies.length === 0 ? (
-            <div className="panel-surface rounded-3xl border border-[#d9e6de] p-6 text-sm text-[#4a6559] xl:col-span-2">
-              <div className="flex items-center gap-2 text-[#2e5e54]">
+            <div className="panel-surface rounded-3xl p-6 text-sm xl:col-span-2">
+              <div className="theme-icon flex items-center gap-2">
                 <Landmark size={18} />
-                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#486156]">
-                  No lobbies yet
+                <p className="theme-muted text-xs font-semibold uppercase tracking-[0.12em]">
+                  {copy.noLobbies}
                 </p>
               </div>
-              <h2 className="mt-3 text-2xl font-semibold text-[#173a30]">
-                Create your first shared fund.
+              <h2 className="theme-heading mt-3 text-2xl font-semibold">
+                {copy.createFirstFund}
               </h2>
-              <p className="mt-2 max-w-xl leading-6">
-                Start with one lobby for rent, groceries, travel, or any monthly shared
-                budget. The creator is added as owner automatically.
+              <p className="theme-muted mt-2 max-w-xl leading-6">
+                {copy.createFirstFundDescription}
               </p>
             </div>
           ) : null}
@@ -174,15 +177,15 @@ export default function LobbyListScreen() {
             <Link
               key={lobby.id}
               href={`/lobby/${lobby.id}`}
-              className="group panel-surface relative overflow-hidden rounded-3xl border border-[#d9e6de] p-5 transition hover:-translate-y-0.5 hover:bg-white/90">
-              <div className="absolute inset-x-0 top-0 h-24 bg-linear-to-br from-[#f9fdfb] to-transparent opacity-90" />
+              className="group panel-surface relative overflow-hidden rounded-3xl p-5 transition hover:-translate-y-0.5">
+              <div className="theme-surface-soft absolute inset-x-0 top-0 h-24 opacity-40" />
               <div className="relative">
                 <div className="flex items-start justify-between gap-4">
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="inline-flex items-center gap-2 rounded-full border border-[#d2e2d9] bg-white/70 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#5d766a]">
+                      <span className="lobby-chip inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em]">
                         <Landmark size={12} />
-                        Shared lobby
+                        {copy.sharedLobby}
                       </span>
                       <span
                         className={`inline-flex items-center rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] ${getRoleTone(lobby.role)}`}>
@@ -190,99 +193,102 @@ export default function LobbyListScreen() {
                         {lobby.role}
                       </span>
                     </div>
-                    <h2 className="mt-4 truncate text-2xl font-semibold text-[#173a30]">
+                    <h2 className="theme-heading mt-4 truncate text-2xl font-semibold">
                       {lobby.name}
                     </h2>
-                    <p className="mt-2 line-clamp-3 min-h-[4.5rem] text-sm leading-6 text-[#4a6559]">
-                      {lobby.description || "No description yet."}
+                    <p className="theme-muted mt-2 line-clamp-3 min-h-[4.5rem] text-sm leading-6">
+                      {lobby.description || copy.noDescriptionYet}
                     </p>
                   </div>
                   <ArrowRight
                     size={18}
-                    className="mt-1 shrink-0 text-[#6f8579] transition group-hover:translate-x-0.5 group-hover:text-[#173a30]"
+                    className="theme-muted mt-1 shrink-0 transition group-hover:translate-x-0.5 group-hover:text-[var(--foreground-strong)]"
                   />
                 </div>
 
                 <div className="mt-5 grid gap-3 sm:grid-cols-3">
-                  <div className="rounded-2xl border border-[#d9e6de] bg-white/85 p-3">
-                    <div className="flex items-center gap-2 text-[#2e5e54]">
+                  <div className="lobby-card rounded-2xl p-3">
+                    <div className="theme-icon flex items-center gap-2">
                       <Wallet size={16} />
-                      <p className="text-xs uppercase tracking-[0.12em] text-[#6f8579]">
-                        Balance
+                      <p className="theme-muted text-xs uppercase tracking-[0.12em]">
+                        {copy.balance}
                       </p>
                     </div>
-                    <p className="mt-2 text-lg font-semibold text-[#173a30]">
-                      {formatYen(lobby.balance)}
+                    <p className="theme-heading mt-2 text-lg font-semibold">
+                      {formatYen(
+                        lobby.balance,
+                        preferences.currency,
+                        preferences.hideBalances,
+                      )}
                     </p>
                   </div>
 
-                  <div className="rounded-2xl border border-[#d9e6de] bg-white/85 p-3">
-                    <div className="flex items-center gap-2 text-[#2e5e54]">
+                  <div className="lobby-card rounded-2xl p-3">
+                    <div className="theme-icon flex items-center gap-2">
                       <Users size={16} />
-                      <p className="text-xs uppercase tracking-[0.12em] text-[#6f8579]">
-                        Members
+                      <p className="theme-muted text-xs uppercase tracking-[0.12em]">
+                        {copy.members}
                       </p>
                     </div>
-                    <p className="mt-2 text-lg font-semibold text-[#173a30]">
+                    <p className="theme-heading mt-2 text-lg font-semibold">
                       {lobby.memberCount}
                     </p>
                   </div>
 
-                  <div className="rounded-2xl border border-[#d9e6de] bg-white/85 p-3">
-                    <div className="flex items-center gap-2 text-[#2e5e54]">
+                  <div className="lobby-card rounded-2xl p-3">
+                    <div className="theme-icon flex items-center gap-2">
                       <Coins size={16} />
-                      <p className="text-xs uppercase tracking-[0.12em] text-[#6f8579]">
-                        Updated
+                      <p className="theme-muted text-xs uppercase tracking-[0.12em]">
+                        {copy.updated}
                       </p>
                     </div>
-                    <p className="mt-2 text-lg font-semibold text-[#173a30]">
-                      {new Date(lobby.updatedAt).toLocaleDateString("en-US")}
+                    <p className="theme-heading mt-2 text-lg font-semibold">
+                      {new Date(lobby.updatedAt).toLocaleDateString(locale)}
                     </p>
                   </div>
                 </div>
 
-                <div className="mt-5 flex items-center justify-between border-t border-[#e2ece6] pt-4 text-sm">
-                  <p className="text-[#5c7367]">Open dashboard</p>
-                  <span className="font-medium text-[#173a30]">Review fund</span>
+                <div className="mt-5 flex items-center justify-between border-t border-[var(--surface-line)] pt-4 text-sm">
+                  <p className="theme-muted">{copy.openDashboard}</p>
+                  <span className="theme-heading font-medium">{copy.reviewFund}</span>
                 </div>
               </div>
             </Link>
           ))}
         </div>
 
-        <aside className="panel-surface rounded-3xl border border-[#d9e6de] p-5 sm:p-6 lg:sticky lg:top-6">
+        <aside className="panel-surface rounded-3xl p-5 sm:p-6 lg:sticky lg:top-6">
           <div className="flex items-start gap-3">
-            <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-linear-to-br from-[#2f8f70] to-[#2a7262] text-white shadow-[0_10px_22px_rgba(35,108,86,0.22)]">
+            <div className="theme-button-primary grid h-12 w-12 shrink-0 place-items-center rounded-2xl text-white">
               <Plus size={20} />
             </div>
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#6f8579]">
-                Create Lobby
+              <p className="theme-muted text-xs font-semibold uppercase tracking-[0.16em]">
+                {copy.createLobby}
               </p>
-              <h2 className="mt-2 text-2xl font-semibold text-[#173a30]">
-                Open a new shared fund.
+              <h2 className="theme-heading mt-2 text-2xl font-semibold">
+                {copy.openSharedFund}
               </h2>
-              <p className="mt-2 text-sm leading-6 text-[#4a6559]">
-                This uses the real lobbies API. The authenticated user becomes the owner
-                automatically and can add members from inside the lobby dashboard.
+              <p className="theme-muted mt-2 text-sm leading-6">
+                {copy.createLobbyDescription}
               </p>
             </div>
           </div>
 
           <div className="mt-5 grid grid-cols-2 gap-3">
-            <div className="rounded-2xl bg-[#eef6f1] px-4 py-3">
-              <p className="text-[11px] uppercase tracking-[0.12em] text-[#6f8579]">Best for</p>
-              <p className="mt-1 text-sm font-semibold text-[#173a30]">Rent, food, trips</p>
+            <div className="lobby-card-soft rounded-2xl px-4 py-3">
+              <p className="theme-muted text-[11px] uppercase tracking-[0.12em]">{copy.bestFor}</p>
+              <p className="theme-heading mt-1 text-sm font-semibold">{copy.bestForExamples}</p>
             </div>
-            <div className="rounded-2xl bg-[#e8f1f2] px-4 py-3">
-              <p className="text-[11px] uppercase tracking-[0.12em] text-[#6f8579]">Members</p>
-              <p className="mt-1 text-sm font-semibold text-[#173a30]">Owner + shared roster</p>
+            <div className="lobby-card-soft rounded-2xl px-4 py-3">
+              <p className="theme-muted text-[11px] uppercase tracking-[0.12em]">{copy.members}</p>
+              <p className="theme-heading mt-1 text-sm font-semibold">{copy.membersHint}</p>
             </div>
           </div>
 
           <form className="mt-5 grid gap-3" onSubmit={handleCreateLobby}>
             <InputField
-              label="Lobby name"
+              label={copy.lobbyName}
               type="text"
               value={form.name}
               onChange={(event) =>
@@ -295,7 +301,7 @@ export default function LobbyListScreen() {
             />
 
             <InputField
-              label="Description"
+              label={copy.lobbyDescription}
               type="text"
               value={form.description}
               onChange={(event) =>
@@ -308,7 +314,7 @@ export default function LobbyListScreen() {
             />
 
             {error ? (
-              <p className="rounded-xl border border-[#f1cdcd] bg-[#fff6f6] px-3 py-2 text-sm text-[#b93838]">
+              <p className="theme-status-error rounded-xl px-3 py-2 text-sm">
                 {error}
               </p>
             ) : null}
@@ -316,9 +322,9 @@ export default function LobbyListScreen() {
             <button
               type="submit"
               disabled={submitting}
-              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-linear-to-r from-[#173a30] to-[#21483c] px-4 py-3 text-sm font-semibold text-white shadow-[0_10px_22px_rgba(23,58,48,0.22)] transition hover:from-[#21483c] hover:to-[#285244] disabled:cursor-not-allowed disabled:opacity-70">
+              className="theme-button-primary inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-70">
               <Plus size={16} />
-              {submitting ? "Creating..." : "Create lobby"}
+              {submitting ? copy.creating : copy.createLobbyAction}
             </button>
           </form>
         </aside>
