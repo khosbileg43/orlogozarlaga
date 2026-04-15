@@ -1,6 +1,10 @@
 import { getMonthRange } from "@/lib/date/monthRange";
 import { prisma } from "@/lib/db/prisma";
-import { LobbyMemberDto, LobbyTransactionDto, TransactionType } from "@/types";
+import {
+  LobbyMemberDto,
+  LobbyTransactionDto,
+  LobbyTransactionTypeDto,
+} from "@/types";
 import {
   ForbiddenError,
   NotFoundError,
@@ -35,7 +39,7 @@ function toDto(transaction: NonNullable<LobbyTransactionRecord>): LobbyTransacti
     id: transaction.id,
     lobbyId: transaction.lobbyId,
     memberId: transaction.memberId,
-    type: transaction.type,
+    type: toLobbyTransactionType(transaction.type),
     category: transaction.category,
     amount: transaction.amount,
     description: transaction.description,
@@ -46,20 +50,23 @@ function toDto(transaction: NonNullable<LobbyTransactionRecord>): LobbyTransacti
   };
 }
 
-function balanceEffect(type: TransactionType, amount: number) {
+function balanceEffect(type: LobbyTransactionTypeDto, amount: number) {
   if (type === "INCOME") {
     return amount;
   }
-  if (type === "EXPENSE") {
-    return -amount;
-  }
-  return 0;
+  return -amount;
 }
 
-function isTransactionType(
-  value: string,
-): value is "INCOME" | "EXPENSE" | "TRANSFER" {
-  return value === "INCOME" || value === "EXPENSE" || value === "TRANSFER";
+function isLobbyTransactionType(value: string): value is LobbyTransactionTypeDto {
+  return value === "INCOME" || value === "EXPENSE";
+}
+
+function toLobbyTransactionType(value: string): LobbyTransactionTypeDto {
+  if (isLobbyTransactionType(value)) {
+    return value;
+  }
+
+  throw new ValidationAppError("Lobby transactions only support INCOME and EXPENSE");
 }
 
 async function requireActiveMembership(userId: string, lobbyId: string) {
@@ -71,19 +78,23 @@ async function requireActiveMembership(userId: string, lobbyId: string) {
   return membership;
 }
 
-function assertTransactionWriteAccess(
+function assertOwnerTransactionAccess(requester: NonNullable<LobbyMemberRecord>) {
+  if (requester.role !== "OWNER") {
+    throw new ForbiddenError("Only the lobby owner can manage lobby transactions");
+  }
+}
+
+function assertCreateTransactionAccess(
   requester: NonNullable<LobbyMemberRecord>,
   memberId: string,
 ) {
-  if (requester.role === "OWNER") {
+  if (requester.role === "OWNER" || requester.id === memberId) {
     return;
   }
 
-  if (requester.id !== memberId) {
-    throw new ForbiddenError(
-      "Only the lobby owner can manage transactions for other members",
-    );
-  }
+  throw new ForbiddenError(
+    "Only the lobby owner can create transactions for other members",
+  );
 }
 
 export const lobbyTransactionService = {
@@ -98,11 +109,11 @@ export const lobbyTransactionService = {
     await requireActiveMembership(args.userId, args.lobbyId);
 
     const normalizedType =
-      args.type && isTransactionType(args.type) ? args.type : undefined;
+      args.type && isLobbyTransactionType(args.type) ? args.type : undefined;
 
     if (args.type && !normalizedType) {
       throw new ValidationAppError(
-        "Invalid transaction type. Use INCOME, EXPENSE, or TRANSFER",
+        "Invalid transaction type. Use INCOME or EXPENSE",
       );
     }
 
@@ -141,7 +152,7 @@ export const lobbyTransactionService = {
     lobbyId: string,
     input: {
       memberId: string;
-      type: "INCOME" | "EXPENSE" | "TRANSFER";
+      type: LobbyTransactionTypeDto;
       category: string;
       amount: number;
       description?: string | null;
@@ -160,17 +171,15 @@ export const lobbyTransactionService = {
         throw new NotFoundError("Lobby member not found");
       }
 
-      assertTransactionWriteAccess(requester, member.id);
+      assertCreateTransactionAccess(requester, member.id);
 
       const delta = balanceEffect(input.type, input.amount);
-      if (delta !== 0) {
-        const updated = await lobbyRepo.incrementBalanceByIdTx(tx, {
-          lobbyId,
-          by: delta,
-        });
-        if (updated.count === 0) {
-          throw new NotFoundError("Lobby not found");
-        }
+      const updated = await lobbyRepo.incrementBalanceByIdTx(tx, {
+        lobbyId,
+        by: delta,
+      });
+      if (updated.count === 0) {
+        throw new NotFoundError("Lobby not found");
       }
 
       const created = await lobbyTransactionRepo.createTx(tx, {
@@ -193,7 +202,7 @@ export const lobbyTransactionService = {
     transactionId: string,
     input: {
       memberId?: string;
-      type?: "INCOME" | "EXPENSE" | "TRANSFER";
+      type?: LobbyTransactionTypeDto;
       category?: string;
       amount?: number;
       description?: string | null;
@@ -201,6 +210,7 @@ export const lobbyTransactionService = {
     },
   ) {
     const requester = await requireActiveMembership(userId, lobbyId);
+    assertOwnerTransactionAccess(requester);
 
     return prisma.$transaction(async (tx) => {
       const existing = await lobbyTransactionRepo.findByIdAndLobbyIdTx(
@@ -212,10 +222,7 @@ export const lobbyTransactionService = {
         throw new NotFoundError("Lobby transaction not found");
       }
 
-      assertTransactionWriteAccess(requester, existing.memberId);
-
       const nextMemberId = input.memberId ?? existing.memberId;
-      assertTransactionWriteAccess(requester, nextMemberId);
 
       const nextMember = await lobbyMemberRepo.findByIdAndLobbyIdTx(
         tx,
@@ -226,20 +233,18 @@ export const lobbyTransactionService = {
         throw new NotFoundError("Lobby member not found");
       }
 
-      const nextType = input.type ?? existing.type;
+      const nextType = input.type ?? toLobbyTransactionType(existing.type);
       const nextAmount = input.amount ?? existing.amount;
       const delta =
         balanceEffect(nextType, nextAmount) -
-        balanceEffect(existing.type, existing.amount);
+        balanceEffect(toLobbyTransactionType(existing.type), existing.amount);
 
-      if (delta !== 0) {
-        const updatedLobby = await lobbyRepo.incrementBalanceByIdTx(tx, {
-          lobbyId,
-          by: delta,
-        });
-        if (updatedLobby.count === 0) {
-          throw new NotFoundError("Lobby not found");
-        }
+      const updatedLobby = await lobbyRepo.incrementBalanceByIdTx(tx, {
+        lobbyId,
+        by: delta,
+      });
+      if (updatedLobby.count === 0) {
+        throw new NotFoundError("Lobby not found");
       }
 
       const updated = await lobbyTransactionRepo.updateByIdTx(tx, {
@@ -264,6 +269,7 @@ export const lobbyTransactionService = {
 
   async delete(userId: string, lobbyId: string, transactionId: string) {
     const requester = await requireActiveMembership(userId, lobbyId);
+    assertOwnerTransactionAccess(requester);
 
     return prisma.$transaction(async (tx) => {
       const existing = await lobbyTransactionRepo.findByIdAndLobbyIdTx(
@@ -275,17 +281,14 @@ export const lobbyTransactionService = {
         throw new NotFoundError("Lobby transaction not found");
       }
 
-      assertTransactionWriteAccess(requester, existing.memberId);
-
-      const rollback = -balanceEffect(existing.type, existing.amount);
-      if (rollback !== 0) {
-        const updatedLobby = await lobbyRepo.incrementBalanceByIdTx(tx, {
-          lobbyId,
-          by: rollback,
-        });
-        if (updatedLobby.count === 0) {
-          throw new NotFoundError("Lobby not found");
-        }
+      const rollback =
+        -balanceEffect(toLobbyTransactionType(existing.type), existing.amount);
+      const updatedLobby = await lobbyRepo.incrementBalanceByIdTx(tx, {
+        lobbyId,
+        by: rollback,
+      });
+      if (updatedLobby.count === 0) {
+        throw new NotFoundError("Lobby not found");
       }
 
       const deleted = await lobbyTransactionRepo.deleteByIdTx(tx, transactionId);

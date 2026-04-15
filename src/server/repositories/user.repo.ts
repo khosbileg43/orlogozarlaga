@@ -14,6 +14,13 @@ export const userRepo = {
     });
   },
 
+  findByEmail(email: string) {
+    return prisma.user.findUnique({
+      where: { email },
+      select: { id: true, auth0Id: true, email: true, name: true },
+    });
+  },
+
   async upsertFromAuth0Identity(input: UpsertAuthUserInput) {
     const existingByAuth0 = await prisma.user.findUnique({
       where: { auth0Id: input.auth0Id },

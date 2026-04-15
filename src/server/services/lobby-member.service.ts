@@ -63,13 +63,14 @@ export const lobbyMemberService = {
     userId: string,
     lobbyId: string,
     input: {
-      userId: string;
+      email: string;
       role: "OWNER" | "MEMBER";
     },
   ) {
     await requireOwnerMembership(userId, lobbyId);
 
-    const targetUser = await userRepo.findById(input.userId);
+    const normalizedEmail = input.email.trim().toLowerCase();
+    const targetUser = await userRepo.findByEmail(normalizedEmail);
     if (!targetUser) {
       throw new NotFoundError("User not found");
     }
@@ -78,7 +79,7 @@ export const lobbyMemberService = {
       const existing = await lobbyMemberRepo.findByLobbyIdAndUserIdTx(
         tx,
         lobbyId,
-        input.userId,
+        targetUser.id,
       );
 
       if (existing?.status === "ACTIVE") {
@@ -100,7 +101,7 @@ export const lobbyMemberService = {
 
       const created = await lobbyMemberRepo.createTx(tx, {
         lobbyId,
-        userId: input.userId,
+        userId: targetUser.id,
         role: input.role,
       });
 
@@ -109,18 +110,12 @@ export const lobbyMemberService = {
   },
 
   async remove(userId: string, lobbyId: string, memberId: string) {
-    const requester = await requireActiveMembership(userId, lobbyId);
+    await requireOwnerMembership(userId, lobbyId);
 
     return prisma.$transaction(async (tx) => {
       const target = await lobbyMemberRepo.findByIdAndLobbyIdTx(tx, memberId, lobbyId);
       if (!target) {
         throw new NotFoundError("Lobby member not found");
-      }
-
-      const isSelf = target.userId === userId;
-
-      if (!isSelf && requester.role !== "OWNER") {
-        throw new ForbiddenError("Only the lobby owner can remove other members");
       }
 
       if (target.status === "LEFT") {

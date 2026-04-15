@@ -9,7 +9,7 @@ export const lobbyMemberIdParamSchema = z.object({
 });
 
 export const createLobbyMemberSchema = z.object({
-  userId: z.string().min(1),
+  email: z.email().max(320),
   role: lobbyRoleSchema.default("MEMBER"),
 });
 

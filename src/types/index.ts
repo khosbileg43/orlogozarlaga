@@ -42,6 +42,8 @@ export type LobbyRoleDto = "OWNER" | "MEMBER";
 
 export type LobbyMemberStatusDto = "ACTIVE" | "LEFT";
 
+export type LobbyTransactionTypeDto = "INCOME" | "EXPENSE";
+
 export type LobbyMemberDto = {
   id: string;
   userId: string;
@@ -78,7 +80,7 @@ export type LobbyTransactionDto = {
   id: string;
   lobbyId: string;
   memberId: string;
-  type: TransactionType;
+  type: LobbyTransactionTypeDto;
   category: string;
   amount: number;
   description: string | null;
@@ -102,9 +104,29 @@ export type LobbyMemberSummaryDto = {
 };
 
 export type LobbySummaryDto = {
+  lobby: {
+    id: string;
+    name: string;
+    balance: number;
+  };
   balanceTotal: number;
   incomeTotal: number;
   expenseTotal: number;
+  memberCount: number;
+  recentTransactions: Array<{
+    id: string;
+    type: LobbyTransactionTypeDto;
+    category: string;
+    amount: number;
+    date: Date;
+    member: {
+      id: string;
+      user: {
+        name: string | null;
+        email: string;
+      };
+    };
+  }>;
   incomeByCategory: CategoryAmountDto[];
   expenseByCategory: CategoryAmountDto[];
 };
@@ -145,7 +167,7 @@ export type LobbyTransactionApiDto = {
   id: string;
   lobbyId: string;
   memberId: string;
-  type: TransactionType;
+  type: LobbyTransactionTypeDto;
   category: string;
   amount: number;
   description: string | null;
@@ -169,9 +191,29 @@ export type LobbyMemberSummaryApiDto = {
 };
 
 export type LobbySummaryApiDto = {
+  lobby: {
+    id: string;
+    name: string;
+    balance: number;
+  };
   balanceTotal: number;
   incomeTotal: number;
   expenseTotal: number;
+  memberCount: number;
+  recentTransactions: Array<{
+    id: string;
+    type: LobbyTransactionTypeDto;
+    category: string;
+    amount: number;
+    date: IsoDateString;
+    member: {
+      id: string;
+      user: {
+        name: string | null;
+        email: string;
+      };
+    };
+  }>;
   incomeByCategory: CategoryAmountDto[];
   expenseByCategory: CategoryAmountDto[];
 };
@@ -207,7 +249,7 @@ export type DeleteLobbyResponseDto = {
 };
 
 export type CreateLobbyMemberRequestDto = {
-  userId: string;
+  email: string;
   role?: LobbyRoleDto;
 };
 
@@ -238,7 +280,7 @@ export type DeleteLobbyMemberResponseDto = {
 
 export type CreateLobbyTransactionRequestDto = {
   memberId: string;
-  type: TransactionType;
+  type: LobbyTransactionTypeDto;
   category: string;
   amount: number;
   description?: string | null;
@@ -247,7 +289,7 @@ export type CreateLobbyTransactionRequestDto = {
 
 export type UpdateLobbyTransactionRequestDto = {
   memberId?: string;
-  type?: TransactionType;
+  type?: LobbyTransactionTypeDto;
   category?: string;
   amount?: number;
   description?: string | null;
