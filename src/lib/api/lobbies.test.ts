@@ -183,6 +183,7 @@ describe("lobbies api client", () => {
     await expect(updateLobby("l1", { name: "Renamed Lobby" })).rejects.toEqual(
       expect.objectContaining<ApiClientError>({
         name: "ApiClientError",
+        message: "Only the lobby owner can update this lobby",
         status: 403,
         code: "FORBIDDEN",
       }),
