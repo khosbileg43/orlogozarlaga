@@ -27,6 +27,10 @@ type TransactionCreateInput = {
   dateIso: string;
 };
 
+type AccountCreateInput = {
+  name: string;
+};
+
 type DashboardContextValue = {
   month: string;
   setMonth: React.Dispatch<React.SetStateAction<string>>;
@@ -37,6 +41,7 @@ type DashboardContextValue = {
   isLoadingMonthData: boolean;
   isSubmitting: boolean;
   error: string | null;
+  createAccount: (input: AccountCreateInput) => Promise<boolean>;
   createTransaction: (input: TransactionCreateInput) => Promise<boolean>;
   refreshAll: () => Promise<void>;
 };
@@ -147,6 +152,33 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
     await Promise.all([loadAccounts(), loadMonthData(month)]);
   }, [loadAccounts, loadMonthData, month]);
 
+  const createAccount = useCallback(
+    async (input: AccountCreateInput) => {
+      setIsSubmitting(true);
+      try {
+        const response = await fetch("/api/accounts", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: input.name,
+          }),
+        });
+        await parseApiResponseOrThrow<{ account: DashboardAccount }>(response);
+        await loadAccounts();
+        setError(null);
+        return true;
+      } catch (e: unknown) {
+        const message =
+          e instanceof Error ? e.message : "Failed to create account";
+        setError(message);
+        return false;
+      } finally {
+        setIsSubmitting(false);
+      }
+    },
+    [loadAccounts],
+  );
+
   const createTransaction = useCallback(
     async (input: TransactionCreateInput) => {
       setIsSubmitting(true);
@@ -199,6 +231,7 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
       isLoadingMonthData,
       isSubmitting,
       error,
+      createAccount,
       createTransaction,
       refreshAll,
     }),
@@ -211,6 +244,7 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
       isLoadingMonthData,
       isSubmitting,
       error,
+      createAccount,
       createTransaction,
       refreshAll,
     ],

@@ -1,6 +1,5 @@
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
-import { scryptSync } from "node:crypto";
 
 const connectionString = process.env.DATABASE_URL;
 
@@ -10,21 +9,14 @@ if (!connectionString) {
 
 const adapter = new PrismaPg({ connectionString });
 const prisma = new PrismaClient({ adapter });
-const demoPassword = "123456";
-
-function createPasswordHash(password: string) {
-  const salt = "orlogozarlaga-demo-salt";
-  const hash = scryptSync(password, salt, 64).toString("hex");
-  return `${salt}:${hash}`;
-}
 
 async function main() {
-  // Demo user (use same email always so re-seeding is safe)
-  const passwordHash = createPasswordHash(demoPassword);
+  // Seed a reusable user record. When the same email later signs in via Auth0,
+  // the repository binds the incoming Auth0 subject onto this local user row.
   const user = await prisma.user.upsert({
     where: { email: "demo@user.com" },
-    update: { passwordHash },
-    create: { email: "demo@user.com", name: "Demo User", passwordHash },
+    update: { name: "Demo User" },
+    create: { email: "demo@user.com", name: "Demo User" },
   });
 
   // Create accounts (Cash / Yuuchou / Mongol Bank)
@@ -91,7 +83,7 @@ async function main() {
 
   console.log("Seeded ✅", {
     userId: user.id,
-    demoLogin: { email: "demo@user.com", password: demoPassword },
+    seededEmail: user.email,
   });
 }
 

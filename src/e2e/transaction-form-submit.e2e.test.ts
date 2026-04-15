@@ -26,7 +26,7 @@ describe("transaction form submit e2e smoke", () => {
   it("submits a form-like payload through create controller flow", async () => {
     (authService.requireAuthenticatedUser as jest.Mock).mockResolvedValue({
       id: "u1",
-      auth0Id: "local:u1",
+      auth0Id: "auth0|u1",
       email: "demo@user.com",
       name: "Demo User",
     });
