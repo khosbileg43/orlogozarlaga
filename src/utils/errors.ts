@@ -1,4 +1,4 @@
-import { Prisma } from "@prisma/client/index";
+import { Prisma } from "@prisma/client";
 import { ZodError } from "zod";
 
 export class AppError extends Error {
