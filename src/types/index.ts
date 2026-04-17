@@ -329,3 +329,148 @@ export type GetLobbySummaryResponseDto = {
 export type GetLobbyMemberSummaryResponseDto = {
   members: LobbyMemberSummaryApiDto[];
 };
+
+export type DebtDirectionDto = "I_OWE" | "OWES_ME";
+
+export type DebtStatusDto = "OPEN" | "SETTLED" | "CANCELLED";
+
+export type DebtEventTypeDto =
+  | "CREATE"
+  | "ADDITIONAL"
+  | "REPAYMENT"
+  | "SETTLE"
+  | "NOTE";
+
+export type DebtCategoryDto =
+  | "FAMILY"
+  | "FRIENDS"
+  | "WORK"
+  | "EMERGENCY"
+  | "BUSINESS"
+  | "OTHER";
+
+export type DebtEventDto = {
+  id: string;
+  debtCaseId: string;
+  actorUserId: string | null;
+  type: DebtEventTypeDto;
+  amount: number;
+  note: string | null;
+  eventDate: Date;
+  settlementTransactionId: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+export type DebtCaseDto = {
+  id: string;
+  userId: string;
+  counterpartyUserId: string | null;
+  personName: string;
+  direction: DebtDirectionDto;
+  category: DebtCategoryDto;
+  reason: string;
+  note: string | null;
+  openedAt: Date;
+  dueDate: Date | null;
+  status: DebtStatusDto;
+  totalAmount: number;
+  repaidAmount: number;
+  remainingAmount: number;
+  settledAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+  counterpartyUser: UserProfileDto | null;
+  events: DebtEventDto[];
+};
+
+export type DebtEventApiDto = {
+  id: string;
+  debtCaseId: string;
+  actorUserId: string | null;
+  type: DebtEventTypeDto;
+  amount: number;
+  note: string | null;
+  eventDate: IsoDateString;
+  settlementTransactionId: string | null;
+  createdAt: IsoDateString;
+  updatedAt: IsoDateString;
+};
+
+export type DebtCaseApiDto = {
+  id: string;
+  userId: string;
+  counterpartyUserId: string | null;
+  personName: string;
+  direction: DebtDirectionDto;
+  category: DebtCategoryDto;
+  reason: string;
+  note: string | null;
+  openedAt: IsoDateString;
+  dueDate: IsoDateString | null;
+  status: DebtStatusDto;
+  totalAmount: number;
+  repaidAmount: number;
+  remainingAmount: number;
+  settledAt: IsoDateString | null;
+  createdAt: IsoDateString;
+  updatedAt: IsoDateString;
+  counterpartyUser: UserProfileDto | null;
+  events: DebtEventApiDto[];
+};
+
+export type CreateDebtCaseRequestDto = {
+  personName: string;
+  direction: DebtDirectionDto;
+  category: DebtCategoryDto;
+  reason: string;
+  note?: string | null;
+  openedAt: IsoDateString;
+  dueDate?: IsoDateString | null;
+  amount: number;
+  counterpartyUserId?: string | null;
+};
+
+export type UpdateDebtCaseRequestDto = {
+  personName?: string;
+  direction?: DebtDirectionDto;
+  category?: DebtCategoryDto;
+  reason?: string;
+  note?: string | null;
+  openedAt?: IsoDateString;
+  dueDate?: IsoDateString | null;
+  amount?: number;
+  status?: DebtStatusDto;
+  counterpartyUserId?: string | null;
+};
+
+export type CreateDebtEventRequestDto = {
+  type: Extract<DebtEventTypeDto, "REPAYMENT" | "ADDITIONAL" | "NOTE">;
+  amount: number;
+  note?: string | null;
+  eventDate: IsoDateString;
+};
+
+export type ListDebtCasesResponseDto = {
+  debts: DebtCaseApiDto[];
+};
+
+export type GetDebtCaseResponseDto = {
+  debt: DebtCaseApiDto;
+};
+
+export type CreateDebtCaseResponseDto = {
+  debt: DebtCaseApiDto;
+};
+
+export type UpdateDebtCaseResponseDto = {
+  debt: DebtCaseApiDto;
+};
+
+export type DeleteDebtCaseResponseDto = {
+  debt: DebtCaseApiDto;
+};
+
+export type CreateDebtEventResponseDto = {
+  debt: DebtCaseApiDto;
+};

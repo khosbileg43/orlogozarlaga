@@ -8,6 +8,21 @@ import StatCard from "@/components/ui/StatCard";
 import { formatMoney as formatPreferenceMoney } from "@/features/dashboard/format";
 import { useUserPreferences } from "@/features/settings/useUserPreferences";
 import {
+  createDebt,
+  createDebtEvent,
+  deleteDebt,
+  listDebts,
+  updateDebt,
+} from "@/lib/api/debts";
+import { ApiClientError } from "@/lib/api/client";
+import type {
+  DebtCaseApiDto,
+  DebtCategoryDto,
+  DebtDirectionDto,
+  DebtEventTypeDto,
+  DebtStatusDto,
+} from "@/types";
+import {
   ArrowDownLeft,
   ArrowUpRight,
   CalendarClock,
@@ -20,18 +35,15 @@ import {
   ShieldCheck,
   UserRound,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
-type DebtDirection = "I_OWE" | "OWES_ME";
-type DebtCategory =
-  | "Family"
-  | "Friends"
-  | "Work"
-  | "Emergency"
-  | "Business"
-  | "Other";
+type DebtDirection = DebtDirectionDto;
+type DebtCategory = DebtCategoryDto;
 type DebtStatus = "OPEN" | "DUE_SOON" | "OVERDUE" | "SETTLED";
-type DebtEventType = "CREATE" | "REPAYMENT" | "ADDITIONAL";
+type DebtEventType = Extract<
+  DebtEventTypeDto,
+  "CREATE" | "REPAYMENT" | "ADDITIONAL" | "NOTE"
+>;
 type DebtFilter = "ACTIVE" | "I_OWE" | "OWES_ME" | "DUE_SOON" | "SETTLED";
 type SidePanelTab = "DETAILS" | "FORM";
 type UiLanguage = "MN" | "EN";
@@ -53,6 +65,7 @@ type DebtRecord = {
   note: string;
   openedAt: string;
   dueDate: string;
+  backendStatus: DebtStatusDto;
   events: DebtEvent[];
 };
 
@@ -74,140 +87,57 @@ type FormDraft = {
   dueDate: string;
 };
 
-const todayIso = "2026-04-16";
+const todayIso = new Date().toISOString().slice(0, 10);
 
-const initialRecords: DebtRecord[] = [
-  {
-    id: "debt-1",
-    person: "Bat-Erdene",
-    direction: "I_OWE",
-    category: "Friends",
-    reason: "Camera rental cash shortfall",
-    note: "Need to finish clearing this before the next freelance payout.",
-    openedAt: "2026-04-02",
-    dueDate: "2026-04-18",
-    events: [
-      {
-        id: "debt-1-e1",
-        type: "CREATE",
-        amount: 180000,
-        date: "2026-04-02",
-        note: "Borrowed for a same-day rental payment.",
-      },
-      {
-        id: "debt-1-e2",
-        type: "REPAYMENT",
-        amount: 50000,
-        date: "2026-04-09",
-        note: "First partial repayment.",
-      },
-      {
-        id: "debt-1-e3",
-        type: "ADDITIONAL",
-        amount: 30000,
-        date: "2026-04-12",
-        note: "Borrowed a little more for transport and accessories.",
-      },
-    ],
-  },
-  {
-    id: "debt-2",
-    person: "Namuun",
-    direction: "OWES_ME",
-    category: "Work",
-    reason: "Shared studio booking and prop costs",
-    note: "She pays back after the brand campaign invoice clears.",
-    openedAt: "2026-04-01",
-    dueDate: "2026-04-17",
-    events: [
-      {
-        id: "debt-2-e1",
-        type: "CREATE",
-        amount: 260000,
-        date: "2026-04-01",
-        note: "I covered the booking and prop purchase.",
-      },
-      {
-        id: "debt-2-e2",
-        type: "REPAYMENT",
-        amount: 100000,
-        date: "2026-04-10",
-        note: "First transfer received.",
-      },
-    ],
-  },
-  {
-    id: "debt-3",
-    person: "Ariuka",
-    direction: "OWES_ME",
-    category: "Friends",
-    reason: "Trip booking split",
-    note: "Waiting on the rest after salary day.",
-    openedAt: "2026-03-28",
-    dueDate: "2026-04-14",
-    events: [
-      {
-        id: "debt-3-e1",
-        type: "CREATE",
-        amount: 120000,
-        date: "2026-03-28",
-        note: "I paid the booking in full.",
-      },
-      {
-        id: "debt-3-e2",
-        type: "REPAYMENT",
-        amount: 30000,
-        date: "2026-04-04",
-        note: "Partial reimbursement received.",
-      },
-    ],
-  },
-  {
-    id: "debt-4",
-    person: "Eej",
-    direction: "I_OWE",
-    category: "Family",
-    reason: "Emergency pharmacy cost",
-    note: "This one is already closed.",
-    openedAt: "2026-03-20",
-    dueDate: "2026-03-30",
-    events: [
-      {
-        id: "debt-4-e1",
-        type: "CREATE",
-        amount: 90000,
-        date: "2026-03-20",
-        note: "Borrowed to cover medicine and taxi.",
-      },
-      {
-        id: "debt-4-e2",
-        type: "REPAYMENT",
-        amount: 90000,
-        date: "2026-03-27",
-        note: "Repaid in full.",
-      },
-    ],
-  },
-  {
-    id: "debt-5",
-    person: "Tugsuu",
-    direction: "I_OWE",
-    category: "Business",
-    reason: "Short-term print production advance",
-    note: "Expected to clear when the client pays.",
-    openedAt: "2026-04-11",
-    dueDate: "2026-04-23",
-    events: [
-      {
-        id: "debt-5-e1",
-        type: "CREATE",
-        amount: 140000,
-        date: "2026-04-11",
-        note: "Advance taken for printing and delivery.",
-      },
-    ],
-  },
-];
+const debtCategories = [
+  "FAMILY",
+  "FRIENDS",
+  "WORK",
+  "EMERGENCY",
+  "BUSINESS",
+  "OTHER",
+] as const satisfies readonly DebtCategory[];
+
+function toIsoDate(value: string) {
+  return new Date(`${value}T00:00:00.000Z`).toISOString();
+}
+
+function formatCategory(category: DebtCategory) {
+  return category.charAt(0) + category.slice(1).toLowerCase();
+}
+
+function toDebtRecord(debt: DebtCaseApiDto): DebtRecord {
+  return {
+    id: debt.id,
+    person: debt.personName,
+    direction: debt.direction,
+    category: debt.category,
+    reason: debt.reason,
+    note: debt.note ?? "",
+    openedAt: debt.openedAt.slice(0, 10),
+    dueDate: (debt.dueDate ?? debt.openedAt).slice(0, 10),
+    backendStatus: debt.status,
+    events: debt.events.map((event) => ({
+      id: event.id,
+      type: event.type as DebtEventType,
+      amount: event.amount,
+      date: event.eventDate.slice(0, 10),
+      note: event.note ?? "",
+    })),
+  };
+}
+
+function getClientErrorMessage(error: unknown, fallback: string) {
+  if (error instanceof ApiClientError) {
+    return error.message;
+  }
+
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return fallback;
+}
 
 const initialActionDraft: ActionDraft = {
   type: "REPAYMENT",
@@ -220,18 +150,18 @@ const initialFormDraft: FormDraft = {
   direction: "I_OWE",
   person: "",
   amount: "",
-  category: "Friends",
+  category: "FRIENDS",
   reason: "",
   note: "",
   openedAt: todayIso,
-  dueDate: "2026-04-25",
+  dueDate: todayIso,
 };
 
 const debtCopy = {
   EN: {
     heroTitle: "Track every amount you owe and every amount owed to you",
     heroDescription: "Personal borrowing and lending, kept visible by person.",
-    frontendPrototype: "Frontend prototype",
+    frontendPrototype: "Live data",
     totalIOwe: "Total I Owe",
     totalOwedToMe: "Total Owed To Me",
     netPosition: "Net Position",
@@ -301,7 +231,7 @@ const debtCopy = {
   MN: {
     heroTitle: "Өгөх болон авах бүх мөнгөө нэг дор хяна",
     heroDescription: "Хүн тус бүрээр өр, авлагаа харагдахуйц байлга.",
-    frontendPrototype: "Frontend prototype",
+    frontendPrototype: "Live data",
     totalIOwe: "Нийт өгөх",
     totalOwedToMe: "Нийт авах",
     netPosition: "Цэвэр дүн",
@@ -401,6 +331,8 @@ function getRemainingAmount(record: DebtRecord) {
 }
 
 function getStatus(record: DebtRecord): DebtStatus {
+  if (record.backendStatus === "CANCELLED") return "SETTLED";
+
   const remaining = getRemainingAmount(record);
   if (remaining <= 0) return "SETTLED";
 
@@ -448,6 +380,10 @@ function getDirectionEventLabel(
       return direction === "I_OWE" ? "Би нэмж зээлсэн" : "Би нэмж зээлдүүлсэн";
     }
 
+    if (type === "NOTE") {
+      return "Тэмдэглэл";
+    }
+
     return direction === "I_OWE" ? "Би зээлсэн" : "Би зээлдүүлсэн";
   }
 
@@ -457,6 +393,10 @@ function getDirectionEventLabel(
 
   if (type === "ADDITIONAL") {
     return direction === "I_OWE" ? "I borrowed more" : "I lent more";
+  }
+
+  if (type === "NOTE") {
+    return "Note";
   }
 
   return direction === "I_OWE" ? "I borrowed" : "I lent";
@@ -505,18 +445,55 @@ export default function UrZeelPage() {
   const { preferences } = useUserPreferences();
   const copy = debtCopy[preferences.language];
   const locale = preferences.language === "MN" ? "mn-MN" : "en-US";
-  const [records, setRecords] = useState(initialRecords);
+  const [records, setRecords] = useState<DebtRecord[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<DebtFilter>("ACTIVE");
   const [category, setCategory] = useState<DebtCategory | "ALL">("ALL");
   const [sidePanelTab, setSidePanelTab] = useState<SidePanelTab>("DETAILS");
-  const [selectedId, setSelectedId] = useState(initialRecords[0].id);
+  const [selectedId, setSelectedId] = useState("");
   const [editingRecordId, setEditingRecordId] = useState<string | null>(null);
   const [deleteCandidateId, setDeleteCandidateId] = useState<string | null>(
     null,
   );
   const [actionDraft, setActionDraft] = useState(initialActionDraft);
   const [formDraft, setFormDraft] = useState(initialFormDraft);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    let mounted = true;
+
+    const loadDebts = async () => {
+      try {
+        const nextDebts = await listDebts({ signal: controller.signal });
+        if (!mounted) return;
+
+        const nextRecords = nextDebts.map(toDebtRecord);
+        setRecords(nextRecords);
+        setSelectedId((current) => current || nextRecords[0]?.id || "");
+        setError(null);
+      } catch (caughtError) {
+        if (!mounted || controller.signal.aborted) {
+          return;
+        }
+
+        setError(getClientErrorMessage(caughtError, "Failed to load debt records"));
+      } finally {
+        if (mounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    void loadDebts();
+
+    return () => {
+      mounted = false;
+      controller.abort();
+    };
+  }, []);
 
   const enrichedRecords = useMemo(
     () =>
@@ -594,22 +571,15 @@ export default function UrZeelPage() {
     (record) => record.status === "DUE_SOON" || record.status === "OVERDUE",
   ).length;
 
-  function updateRecord(
-    recordId: string,
-    updater: (record: DebtRecord) => DebtRecord,
-  ) {
-    setRecords((current) =>
-      current.map((record) =>
-        record.id === recordId ? updater(record) : record,
-      ),
-    );
+  function upsertRecord(nextRecord: DebtRecord) {
+    setRecords((current) => [
+      nextRecord,
+      ...current.filter((record) => record.id !== nextRecord.id),
+    ]);
   }
 
-  function handleActionSubmit() {
+  async function handleActionSubmit() {
     if (!selectedRecord) return;
-
-    const amount = Number(formDraft.amount);
-    void amount;
 
     const eventAmount = Number(actionDraft.amount);
     if (Number.isNaN(eventAmount) || eventAmount <= 0) return;
@@ -620,47 +590,53 @@ export default function UrZeelPage() {
     )
       return;
 
-    updateRecord(selectedRecord.id, (record) => ({
-      ...record,
-      events: [
-        ...record.events,
-        {
-          id: `${record.id}-${Date.now()}`,
-          type: actionDraft.type,
-          amount: eventAmount,
-          date: actionDraft.date,
-          note:
-            actionDraft.note.trim() ||
-            (actionDraft.type === "REPAYMENT"
-              ? "Manual repayment entry."
-              : "Additional debt amount added."),
-        },
-      ],
-    }));
+    setSubmitting(true);
+    try {
+      const updatedDebt = await createDebtEvent(selectedRecord.id, {
+        type: actionDraft.type,
+        amount: eventAmount,
+        note:
+          actionDraft.note.trim() ||
+          (actionDraft.type === "REPAYMENT"
+            ? "Manual repayment entry."
+            : "Additional debt amount added."),
+        eventDate: toIsoDate(actionDraft.date),
+      });
 
-    setActionDraft((current) => ({
-      ...current,
-      amount: "",
-      note: "",
-    }));
+      upsertRecord(toDebtRecord(updatedDebt));
+      setError(null);
+      setActionDraft((current) => ({
+        ...current,
+        amount: "",
+        note: "",
+      }));
+    } catch (caughtError) {
+      setError(
+        getClientErrorMessage(caughtError, "Failed to save debt event"),
+      );
+    } finally {
+      setSubmitting(false);
+    }
   }
 
-  function handleSettleSelected() {
+  async function handleSettleSelected() {
     if (!selectedRecord || selectedRecord.remaining <= 0) return;
 
-    updateRecord(selectedRecord.id, (record) => ({
-      ...record,
-      events: [
-        ...record.events,
-        {
-          id: `${record.id}-${Date.now()}`,
-          type: "REPAYMENT",
-          amount: selectedRecord.remaining,
-          date: todayIso,
-          note: "Marked as settled from Ur Zeel detail panel.",
-        },
-      ],
-    }));
+    setSubmitting(true);
+    try {
+      const updatedDebt = await createDebtEvent(selectedRecord.id, {
+        type: "REPAYMENT",
+        amount: selectedRecord.remaining,
+        note: "Marked as settled from Ur Zeel detail panel.",
+        eventDate: toIsoDate(todayIso),
+      });
+      upsertRecord(toDebtRecord(updatedDebt));
+      setError(null);
+    } catch (caughtError) {
+      setError(getClientErrorMessage(caughtError, "Failed to settle debt"));
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   function handleEditSelected() {
@@ -680,81 +656,61 @@ export default function UrZeelPage() {
     setSidePanelTab("FORM");
   }
 
-  function handleDeleteRecord(recordId: string) {
-    const nextRecords = records.filter((record) => record.id !== recordId);
-    setRecords(nextRecords);
-    setEditingRecordId(null);
-    setDeleteCandidateId(null);
-    setFormDraft(initialFormDraft);
-    setSelectedId(nextRecords[0]?.id ?? "");
-    setSidePanelTab(nextRecords.length > 0 ? "DETAILS" : "FORM");
+  async function handleDeleteRecord(recordId: string) {
+    setSubmitting(true);
+    try {
+      await deleteDebt(recordId);
+      const nextRecords = records.filter((record) => record.id !== recordId);
+      setRecords(nextRecords);
+      setEditingRecordId(null);
+      setDeleteCandidateId(null);
+      setFormDraft(initialFormDraft);
+      setSelectedId(nextRecords[0]?.id ?? "");
+      setSidePanelTab(nextRecords.length > 0 ? "DETAILS" : "FORM");
+      setError(null);
+    } catch (caughtError) {
+      setError(getClientErrorMessage(caughtError, "Failed to delete debt"));
+    } finally {
+      setSubmitting(false);
+    }
   }
 
-  function handleSaveRecord() {
+  async function handleSaveRecord() {
     const amount = Number(formDraft.amount);
     if (!formDraft.person.trim() || !formDraft.reason.trim()) return;
     if (Number.isNaN(amount) || amount <= 0) return;
 
-    if (editingRecordId) {
-      updateRecord(editingRecordId, (record) => ({
-        ...record,
-        person: formDraft.person.trim(),
+    setSubmitting(true);
+    try {
+      const payload = {
+        personName: formDraft.person.trim(),
         direction: formDraft.direction,
         category: formDraft.category,
         reason: formDraft.reason.trim(),
-        note: formDraft.note.trim(),
-        openedAt: formDraft.openedAt,
-        dueDate: formDraft.dueDate,
-        events: record.events.map((event, index) =>
-          index === 0 && event.type === "CREATE"
-            ? {
-                ...event,
-                amount,
-                date: formDraft.openedAt,
-                note:
-                  formDraft.note.trim() ||
-                  (formDraft.direction === "I_OWE"
-                    ? "Initial borrowing recorded from the form."
-                    : "Initial lending recorded from the form."),
-              }
-            : event,
-        ),
-      }));
+        note: formDraft.note.trim() || null,
+        openedAt: toIsoDate(formDraft.openedAt),
+        dueDate: formDraft.dueDate ? toIsoDate(formDraft.dueDate) : null,
+        amount,
+      };
 
+      const nextDebt = editingRecordId
+        ? await updateDebt(editingRecordId, payload)
+        : await createDebt(payload);
+
+      const nextRecord = toDebtRecord(nextDebt);
+      upsertRecord(nextRecord);
+      setSelectedId(nextRecord.id);
       setEditingRecordId(null);
       setFormDraft(initialFormDraft);
       setSidePanelTab("DETAILS");
-      return;
+      setError(null);
+    } catch (caughtError) {
+      setError(
+        getClientErrorMessage(caughtError, "Failed to save debt record"),
+      );
+    } finally {
+      setSubmitting(false);
     }
-
-    const nextRecord: DebtRecord = {
-      id: `debt-${Date.now()}`,
-      person: formDraft.person.trim(),
-      direction: formDraft.direction,
-      category: formDraft.category,
-      reason: formDraft.reason.trim(),
-      note: formDraft.note.trim(),
-      openedAt: formDraft.openedAt,
-      dueDate: formDraft.dueDate,
-      events: [
-        {
-          id: `debt-${Date.now()}-create`,
-          type: "CREATE",
-          amount,
-          date: formDraft.openedAt,
-          note:
-            formDraft.note.trim() ||
-            (formDraft.direction === "I_OWE"
-              ? "Initial borrowing recorded from the form."
-              : "Initial lending recorded from the form."),
-        },
-      ],
-    };
-
-    setRecords((current) => [nextRecord, ...current]);
-    setSelectedId(nextRecord.id);
-    setFormDraft(initialFormDraft);
-    setSidePanelTab("DETAILS");
   }
 
   return (
@@ -869,17 +825,7 @@ export default function UrZeelPage() {
                   <span className="theme-muted px-1 text-xs font-semibold uppercase tracking-[0.14em]">
                     {copy.category}
                   </span>
-                  {(
-                    [
-                      "ALL",
-                      "Family",
-                      "Friends",
-                      "Work",
-                      "Emergency",
-                      "Business",
-                      "Other",
-                    ] as const
-                  ).map((item) => (
+                  {(["ALL", ...debtCategories] as const).map((item) => (
                     <Button
                       key={item}
                       onClick={() => setCategory(item)}
@@ -888,15 +834,25 @@ export default function UrZeelPage() {
                           ? "theme-chip theme-chip-active"
                           : "theme-chip"
                       }`}>
-                      {item === "ALL" ? copy.all : item}
+                      {item === "ALL" ? copy.all : formatCategory(item)}
                     </Button>
                   ))}
                 </div>
+
+                {error ? (
+                  <div className="theme-status-error rounded-2xl px-3 py-2 text-sm">
+                    {error}
+                  </div>
+                ) : null}
               </div>
             </div>
 
             <div className="mt-4 grid gap-3">
-              {filteredRecords.length === 0 ? (
+              {loading ? (
+                <div className="theme-empty-state rounded-2xl px-4 py-8 text-center text-sm">
+                  Loading debt records...
+                </div>
+              ) : filteredRecords.length === 0 ? (
                 <div className="theme-empty-state rounded-2xl px-4 py-8 text-center text-sm">
                   {copy.noDebtRecordMatches}
                 </div>
@@ -941,7 +897,7 @@ export default function UrZeelPage() {
                                 )}
                               </span>
                               <span className="theme-chip rounded-full px-2.5 py-1 text-xs font-semibold">
-                                {record.category}
+                                {formatCategory(record.category)}
                               </span>
                             </div>
 
@@ -1133,7 +1089,7 @@ export default function UrZeelPage() {
                         )}
                       </span>
                       <span className="theme-chip rounded-full px-2.5 py-1 text-xs font-semibold">
-                        {selectedRecord.category}
+                        {formatCategory(selectedRecord.category)}
                       </span>
                     </div>
 
@@ -1166,7 +1122,8 @@ export default function UrZeelPage() {
                       <div className="flex flex-wrap gap-2">
                         <Button
                           onClick={handleEditSelected}
-                          className="theme-button-secondary inline-flex items-center justify-center gap-2 rounded-xl px-3 py-2 text-sm font-medium">
+                          disabled={submitting}
+                          className="theme-button-secondary inline-flex items-center justify-center gap-2 rounded-xl px-3 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-60">
                           <NotebookPen size={15} />
                           {copy.edit}
                         </Button>
@@ -1174,12 +1131,13 @@ export default function UrZeelPage() {
                           onClick={() =>
                             setDeleteCandidateId(selectedRecord.id)
                           }
-                          className="theme-status-error rounded-xl px-3 py-2 text-sm font-medium">
+                          disabled={submitting}
+                          className="theme-status-error rounded-xl px-3 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-60">
                           {copy.delete}
                         </Button>
                         <Button
                           onClick={handleSettleSelected}
-                          disabled={selectedRecord.remaining <= 0}
+                          disabled={submitting || selectedRecord.remaining <= 0}
                           className="theme-button-secondary inline-flex items-center justify-center gap-2 rounded-xl px-3 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-60">
                           <CheckCircle2 size={15} />
                           {copy.settle}
@@ -1195,11 +1153,12 @@ export default function UrZeelPage() {
                             type: "REPAYMENT",
                           }))
                         }
+                        disabled={submitting}
                         className={`rounded-xl px-3 py-2 text-sm font-medium ${
                           actionDraft.type === "REPAYMENT"
                             ? "theme-chip theme-chip-active"
                             : "theme-chip"
-                        }`}>
+                        } disabled:cursor-not-allowed disabled:opacity-60`}>
                         {copy.addRepayment}
                       </Button>
                       <Button
@@ -1209,11 +1168,12 @@ export default function UrZeelPage() {
                             type: "ADDITIONAL",
                           }))
                         }
+                        disabled={submitting}
                         className={`rounded-xl px-3 py-2 text-sm font-medium ${
                           actionDraft.type === "ADDITIONAL"
                             ? "theme-chip theme-chip-active"
                             : "theme-chip"
-                        }`}>
+                        } disabled:cursor-not-allowed disabled:opacity-60`}>
                         {copy.addMore}
                       </Button>
                     </div>
@@ -1258,6 +1218,7 @@ export default function UrZeelPage() {
 
                     <Button
                       onClick={handleActionSubmit}
+                      disabled={submitting}
                       className="theme-button-primary mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold">
                       <Plus size={16} />
                       {copy.saveEvent}
@@ -1375,12 +1336,11 @@ export default function UrZeelPage() {
                           }))
                         }
                         className="theme-input w-full rounded-xl px-3 py-2.5 text-sm outline-none">
-                        <option value="Family">Family</option>
-                        <option value="Friends">Friends</option>
-                        <option value="Work">Work</option>
-                        <option value="Emergency">Emergency</option>
-                        <option value="Business">Business</option>
-                        <option value="Other">Other</option>
+                        {debtCategories.map((item) => (
+                          <option key={item} value={item}>
+                            {formatCategory(item)}
+                          </option>
+                        ))}
                       </select>
                       <Input
                         value={formDraft.reason}
@@ -1434,6 +1394,7 @@ export default function UrZeelPage() {
                     <div className="mt-4 grid gap-2 sm:grid-cols-2">
                       <Button
                         onClick={handleSaveRecord}
+                        disabled={submitting}
                         className="theme-button-primary inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold">
                         <Plus size={16} />
                         {editingRecordId
@@ -1447,6 +1408,7 @@ export default function UrZeelPage() {
                             setFormDraft(initialFormDraft);
                             setSidePanelTab("DETAILS");
                           }}
+                          disabled={submitting}
                           className="theme-button-secondary rounded-xl px-4 py-3 text-sm font-medium">
                           {copy.cancelEdit}
                         </Button>
@@ -1490,12 +1452,14 @@ export default function UrZeelPage() {
             <div className="mt-5 flex justify-end gap-2">
               <Button
                 onClick={() => setDeleteCandidateId(null)}
+                disabled={submitting}
                 className="theme-button-secondary rounded-xl px-4 py-2.5 text-sm font-medium">
                 {copy.cancel}
               </Button>
               <Button
                 onClick={() => handleDeleteRecord(deleteCandidate.id)}
-                className="theme-status-error rounded-xl px-4 py-2.5 text-sm font-medium">
+                disabled={submitting}
+                className="theme-status-error rounded-xl px-4 py-2.5 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-60">
                 {copy.delete}
               </Button>
             </div>
