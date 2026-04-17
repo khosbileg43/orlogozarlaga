@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/db/prisma";
-import { Prisma } from "@prisma/client";
+import { Prisma } from "@prisma/client/index";
 
 const lobbyTransactionSelect = {
   id: true,
