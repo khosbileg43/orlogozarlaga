@@ -3,7 +3,6 @@
     "target": "ES2017",
     "lib": ["dom", "dom.iterable", "esnext"],
     "allowJs": true,
-    "baseUrl": ".",
     "skipLibCheck": true,
     "strict": true,
     "noEmit": true,
@@ -15,7 +14,6 @@
     "jsx": "react-jsx",
     "types": ["jest", "node"],
     "incremental": true,
-    "ignoreDeprecations": "5.0",
     "plugins": [
       {
         "name": "next"

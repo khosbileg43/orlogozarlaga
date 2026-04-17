@@ -482,6 +482,8 @@ export type DeleteDebtCaseResponseDto = {
 
 export type CreateDebtEventResponseDto = {
   debt: DebtCaseApiDto;
+};
+
 export type TransactionApiDto = {
   id: string;
   accountId: string;

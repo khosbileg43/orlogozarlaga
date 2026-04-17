@@ -28,8 +28,8 @@ const TransactionRow: React.FC<TransactionRowProps> = ({
         <p className="theme-muted text-xs">{meta}</p>
       </div>
       <div className="flex items-center gap-3">
-        {actions}
         <p className={`theme-text ${amountClassName}`}>{amount}</p>
+        {actions}
       </div>
     </div>
   );

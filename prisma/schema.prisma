@@ -81,26 +81,17 @@ model Account {
 }
 
 model Transaction {
-  id                   String     @id @default(cuid())
-  userId               String
-  accountId            String
-  toAccountId          String?
-  type                 TransactionType
-  category             String
-  amount               Int
-  description          String?
-  date                 DateTime
-  debtSettlementEvent  DebtEvent? @relation("DebtSettlementTransaction")
-  id          String          @id @default(cuid())
-  userId      String
-  accountId   String
-  toAccountId String?
-  lobbyId     String?
-  type        TransactionType
-  category    String
-  amount      Int
-  description String?
-  date        DateTime
+  id                  String            @id @default(cuid())
+  userId              String
+  accountId           String
+  toAccountId         String?
+  lobbyId             String?
+  type                TransactionType
+  category            String
+  amount              Int
+  description         String?
+  date                DateTime
+  debtSettlementEvent DebtEvent?        @relation("DebtSettlementTransaction")
 
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   account   Account  @relation("SourceAccountTransactions", fields: [accountId], references: [id], onDelete: Cascade)
