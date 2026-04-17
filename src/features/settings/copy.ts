@@ -50,6 +50,8 @@ export function getCopy(language: LanguagePreference) {
       login: "Login",
       reset: "Reset",
       save: "Save",
+      saved: "Saved",
+      loading: "Loading...",
       preferences: "Preferences",
       language: "Language",
       mongolian: "Mongolian",
@@ -150,6 +152,50 @@ export function getCopy(language: LanguagePreference) {
       cancelEdit: "Cancel edit",
       memberTransactionHelp:
         "Members can create transactions for themselves. Owners can edit or delete transactions for the whole lobby.",
+      loginEyebrow: "Sign in",
+      loginTitle: "Login",
+      welcomeBackTitle: "Welcome back",
+      welcomeBackDescription:
+        "Track income, control spending, and keep your monthly finance clear in one place.",
+      authReturnHint:
+        "After authentication you will be returned to your dashboard.",
+      continueWithAuth0: "Continue with Auth0",
+      needPasswordHelp: "Need password help?",
+      forgotPassword: "Forgot password",
+      auth0NotConfigured:
+        "Auth0 is not configured. Set AUTH0_DOMAIN, AUTH0_CLIENT_ID, AUTH0_CLIENT_SECRET, AUTH0_SECRET, and APP_BASE_URL to enable login.",
+      newHere: "New here?",
+      createAccountLink: "Create account",
+      signupEyebrow: "Get started",
+      signupTitle: "Sign up",
+      signupHeroTitle: "Build better money habits",
+      signupHeroDescription:
+        "Create your account and start tracking all your income and expense flows from today.",
+      signupHeroHint:
+        "You can add accounts, monthly summaries and transaction categories.",
+      continueToAuth0Signup: "Continue to Auth0 sign up",
+      alreadyHaveAccount: "Already have an account?",
+      auth0SignupNotConfigured:
+        "Auth0 is not configured. Configure Auth0 first, then use hosted sign up from this page.",
+      recoveryEyebrow: "Recovery",
+      recoveryTitle: "Forgot password",
+      passwordRecovery: "Password recovery",
+      resetThroughAuth0: "Reset password through Auth0",
+      resetPassword: "Reset your password",
+      auth0RecoveryDescription:
+        "Auth0 Universal Login already includes password recovery, so the reset flow stays outside your app code.",
+      auth0RecoveryDisabled:
+        "Configure Auth0 to use hosted password reset through Universal Login.",
+      auth0RecoveryHint:
+        "Open the hosted login screen and use the built-in Forgot password action there.",
+      auth0RecoverySigninHint:
+        "After reset, sign in again to continue your dashboard.",
+      continueToAuth0: "Continue to Auth0",
+      resetFlowDescription:
+        "Continue to Auth0 login, then click the built-in password reset link.",
+      auth0ResetNotConfigured:
+        "Password reset is handled only by Auth0 Universal Login. Add the Auth0 environment variables, then use the hosted login screen.",
+      backTo: "Back to",
     };
   }
 
@@ -201,6 +247,8 @@ export function getCopy(language: LanguagePreference) {
     login: "Нэвтрэлт",
     reset: "Сэргээх",
     save: "Хадгалах",
+    saved: "Хадгалагдсан",
+    loading: "Ачаалж байна...",
     preferences: "Сонголтууд",
     language: "Хэл",
     mongolian: "Монгол",
@@ -301,5 +349,48 @@ export function getCopy(language: LanguagePreference) {
     cancelEdit: "Засварыг цуцлах",
     memberTransactionHelp:
       "Гишүүд зөвхөн өөрийнхөө гүйлгээг бүртгэнэ. Owner бүх лоббиний гүйлгээг засах, устгах эрхтэй.",
+    loginEyebrow: "Нэвтрэх",
+    loginTitle: "Нэвтрэх",
+    welcomeBackTitle: "Буцаад тавтай морил",
+    welcomeBackDescription:
+      "Орлогоо хянаж, зарлагаа удирдаж, сарын санхүүгээ нэг дор цэгцтэй байлга.",
+    authReturnHint: "Нэвтэрсний дараа таны сонгосон самбар руу буцна.",
+    continueWithAuth0: "Auth0-оор үргэлжлүүлэх",
+    needPasswordHelp: "Нууц үгийн тусламж хэрэгтэй юу?",
+    forgotPassword: "Нууц үг мартсан",
+    auth0NotConfigured:
+      "Auth0 тохируулагдаагүй байна. AUTH0_DOMAIN, AUTH0_CLIENT_ID, AUTH0_CLIENT_SECRET, AUTH0_SECRET, APP_BASE_URL утгуудыг нэм.",
+    newHere: "Шинээр орж байна уу?",
+    createAccountLink: "Бүртгэл үүсгэх",
+    signupEyebrow: "Эхлэх",
+    signupTitle: "Бүртгүүлэх",
+    signupHeroTitle: "Мөнгөө илүү зөв удирд",
+    signupHeroDescription:
+      "Өөрийн бүртгэлээ үүсгээд өнөөдрөөс эхлэн орлого, зарлагаа нэг дор хяна.",
+    signupHeroHint:
+      "Та данс, сарын summary, transaction category-уудаа удирдаж чадна.",
+    continueToAuth0Signup: "Auth0 бүртгэл рүү үргэлжлүүлэх",
+    alreadyHaveAccount: "Бүртгэлтэй юу?",
+    auth0SignupNotConfigured:
+      "Auth0 тохируулаад дараа нь энэ хуудсаас hosted sign up ашиглана.",
+    recoveryEyebrow: "Сэргээх",
+    recoveryTitle: "Нууц үг мартсан",
+    passwordRecovery: "Нууц үг сэргээх",
+    resetThroughAuth0: "Auth0-оор нууц үг сэргээх",
+    resetPassword: "Нууц үгээ сэргээх",
+    auth0RecoveryDescription:
+      "Auth0 Universal Login дотор password recovery бэлэн байдаг тул reset flow нь аппын кодоос тусдаа явна.",
+    auth0RecoveryDisabled:
+      "Hosted password reset ашиглахын тулд Auth0-оо тохируул.",
+    auth0RecoveryHint:
+      "Hosted login дэлгэцийг нээгээд built-in Forgot password үйлдлийг ашигла.",
+    auth0RecoverySigninHint:
+      "Сэргээсний дараа дахин нэвтэрч самбар руугаа орно.",
+    continueToAuth0: "Auth0 руу үргэлжлүүлэх",
+    resetFlowDescription:
+      "Auth0 login руу ороод built-in password reset холбоосыг дар.",
+    auth0ResetNotConfigured:
+      "Password reset-ийг зөвхөн Auth0 Universal Login удирдана. Auth0 env-үүдээ нэмээд hosted login дэлгэц ашигла.",
+    backTo: "Буцах",
   };
 }

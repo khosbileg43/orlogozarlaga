@@ -22,16 +22,47 @@ enum LobbyMemberStatus {
   LEFT
 }
 
+enum DebtDirection {
+  I_OWE
+  OWES_ME
+}
+
+enum DebtStatus {
+  OPEN
+  SETTLED
+  CANCELLED
+}
+
+enum DebtEventType {
+  CREATE
+  ADDITIONAL
+  REPAYMENT
+  SETTLE
+  NOTE
+}
+
+enum DebtCategory {
+  FAMILY
+  FRIENDS
+  WORK
+  EMERGENCY
+  BUSINESS
+  OTHER
+}
+
 model User {
-  id               String        @id @default(cuid())
-  auth0Id          String?       @unique
-  email            String        @unique
-  name             String?
-  accounts         Account[]
-  transactions     Transaction[]
-  lobbiesCreated   Lobby[]       @relation("LobbyCreator")
-  lobbyMemberships LobbyMember[]
-  createdAt        DateTime      @default(now())
+  id                   String      @id @default(cuid())
+  auth0Id              String?     @unique
+  email                String      @unique
+  name                 String?
+  accounts             Account[]
+  transactions         Transaction[]
+  lobbiesCreated       Lobby[]     @relation("LobbyCreator")
+  lobbyMemberships     LobbyMember[]
+  debtCases            DebtCase[]
+  debtEventsRecorded   DebtEvent[] @relation("DebtEventActor")
+  counterpartyDebtCases DebtCase[] @relation("DebtCounterpartyUser")
+  createdAt            DateTime    @default(now())
 }
 
 model Account {
@@ -50,6 +81,16 @@ model Account {
 }
 
 model Transaction {
+  id                   String     @id @default(cuid())
+  userId               String
+  accountId            String
+  toAccountId          String?
+  type                 TransactionType
+  category             String
+  amount               Int
+  description          String?
+  date                 DateTime
+  debtSettlementEvent  DebtEvent? @relation("DebtSettlementTransaction")
   id          String          @id @default(cuid())
   userId      String
   accountId   String
@@ -73,6 +114,55 @@ model Transaction {
   @@index([accountId, date])
   @@index([toAccountId, date])
   @@index([lobbyId, date])
+}
+
+model DebtCase {
+  id                 String        @id @default(cuid())
+  userId             String
+  counterpartyUserId String?
+  personName         String
+  direction          DebtDirection
+  category           DebtCategory  @default(OTHER)
+  reason             String
+  note               String?
+  openedAt           DateTime
+  dueDate            DateTime?
+  status             DebtStatus    @default(OPEN)
+  totalAmount        Int           @default(0)
+  repaidAmount       Int           @default(0)
+  remainingAmount    Int           @default(0)
+  settledAt          DateTime?
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  counterpartyUser User?     @relation("DebtCounterpartyUser", fields: [counterpartyUserId], references: [id], onDelete: SetNull)
+  events           DebtEvent[]
+
+  @@index([userId, status, direction])
+  @@index([userId, dueDate])
+  @@index([userId, category])
+  @@index([counterpartyUserId])
+}
+
+model DebtEvent {
+  id                      String      @id @default(cuid())
+  debtCaseId              String
+  actorUserId             String?
+  type                    DebtEventType
+  amount                  Int         @default(0)
+  note                    String?
+  eventDate               DateTime
+  settlementTransactionId String?     @unique
+  createdAt               DateTime    @default(now())
+  updatedAt               DateTime    @updatedAt
+
+  debtCase              DebtCase      @relation(fields: [debtCaseId], references: [id], onDelete: Cascade)
+  actorUser             User?         @relation("DebtEventActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+  settlementTransaction Transaction?  @relation("DebtSettlementTransaction", fields: [settlementTransactionId], references: [id], onDelete: SetNull)
+
+  @@index([debtCaseId, eventDate])
+  @@index([actorUserId])
 }
 
 model Lobby {
