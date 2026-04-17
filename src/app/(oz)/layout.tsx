@@ -20,8 +20,6 @@ type MeResponse = {
 
 export default function OzLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const isLobbySection =
-    pathname === "/lobby" || pathname.startsWith("/lobby/");
   const { preferences, updatePreferences } = useUserPreferences();
   const copy = getCopy(preferences.language);
   const themeMode = preferences.theme === "DARK" ? "dark" : "light";

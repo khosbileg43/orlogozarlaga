@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import Link from "next/link";
+import { getCopy } from "@/features/settings/copy";
 import { preferencesCookieKey } from "@/features/settings/preferences";
 import { getServerPreferences } from "@/features/settings/server-preferences";
 import { isAuth0Configured } from "@/lib/auth/auth0";
@@ -9,6 +10,7 @@ export default async function SignupPage() {
   const preferences = getServerPreferences(
     cookieStore.get(preferencesCookieKey)?.value,
   );
+  const copy = getCopy(preferences?.language ?? "MN");
   const signupHref = `/auth/login?screen_hint=signup&returnTo=${encodeURIComponent(
     preferences?.landingPage ?? "/pocketDashboard",
   )}`;
@@ -22,25 +24,26 @@ export default async function SignupPage() {
               Orlogo Zarlaga
             </p>
             <h1 className="theme-heading mt-3 text-3xl font-semibold leading-tight">
-              Build better money habits
+              {copy.signupHeroTitle}
             </h1>
             <p className="soft-text mt-2 max-w-sm text-sm leading-6">
-              Create your account and start tracking all your income and expense flows
-              from today.
+              {copy.signupHeroDescription}
             </p>
           </div>
 
           <div className="theme-user-card theme-text rounded-2xl p-4 text-sm">
-            You can add accounts, monthly summaries and transaction categories.
+            {copy.signupHeroHint}
           </div>
         </section>
 
         <section className="panel-surface rounded-3xl p-4 sm:p-6">
           <div className="mb-5">
             <p className="soft-text text-xs font-semibold uppercase tracking-[0.16em]">
-              Get started
+              {copy.signupEyebrow}
             </p>
-            <h2 className="theme-heading mt-1 text-2xl font-semibold">Sign up</h2>
+            <h2 className="theme-heading mt-1 text-2xl font-semibold">
+              {copy.signupTitle}
+            </h2>
           </div>
 
           {isAuth0Configured ? (
@@ -48,27 +51,26 @@ export default async function SignupPage() {
               <a
                 href={signupHref}
                 className="theme-button-primary block w-full rounded-xl py-2.5 text-center text-sm font-semibold">
-                Continue to Auth0 sign up
+                {copy.continueToAuth0Signup}
               </a>
 
               <p className="theme-muted text-center text-sm">
-                Already have an account?{" "}
+                {copy.alreadyHaveAccount}{" "}
                 <Link href="/login" className="theme-icon font-medium hover:underline">
-                  Login
+                  {copy.loginTitle}
                 </Link>
               </p>
             </div>
           ) : (
             <div className="theme-status-warning rounded-2xl p-4 text-sm leading-6">
-              Auth0 is not configured. Configure Auth0 first, then use hosted sign up from
-              this page.
+              {copy.auth0SignupNotConfigured}
             </div>
           )}
 
           <p className="theme-muted mt-4 text-center text-sm">
-            Already have an account?{" "}
+            {copy.alreadyHaveAccount}{" "}
             <Link href="/login" className="theme-icon font-medium hover:underline">
-              Login
+              {copy.loginTitle}
             </Link>
           </p>
         </section>

@@ -3,28 +3,82 @@
 import {
   ArrowRightLeft,
   ChartNoAxesCombined,
+  EllipsisVertical,
   TrendingDown,
   TrendingUp,
   type LucideIcon,
 } from "lucide-react";
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import TransactionRow from "@/components/ui/TransactionRow";
-import {
-  formatIsoDate,
-  formatSignedYen,
-} from "@/features/dashboard/format";
+import { formatIsoDate, formatSignedYen } from "@/features/dashboard/format";
 import { useDashboard } from "@/features/dashboard/DashboardProvider";
 import { TransactionFilter, TransactionType } from "@/features/dashboard/types";
 import { getCopy } from "@/features/settings/copy";
 import { useUserPreferences } from "@/features/settings/useUserPreferences";
 
 const Transactions = () => {
-  const { transactions, isLoadingMonthData, isSubmitting, startEditingTransaction, deleteTransaction } =
-    useDashboard();
+  const {
+    transactions,
+    isLoadingMonthData,
+    isSubmitting,
+    startEditingTransaction,
+    deleteTransaction,
+  } = useDashboard();
   const { preferences } = useUserPreferences();
   const copy = getCopy(preferences.language);
   const locale = preferences.language === "MN" ? "mn-MN" : "en-US";
-  const [transactionsType, setTransactionsType] = useState<TransactionFilter>("ALL");
+  const [transactionsType, setTransactionsType] =
+    useState<TransactionFilter>("ALL");
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [menuPosition, setMenuPosition] = useState<{
+    top: number;
+    left: number;
+  } | null>(null);
+  const menuButtonRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+
+  const updateMenuPosition = (transactionId: string) => {
+    const anchor = menuButtonRefs.current[transactionId];
+    if (!anchor) return;
+
+    const rect = anchor.getBoundingClientRect();
+    setMenuPosition({
+      top: rect.bottom - 35,
+      left: rect.right + 5,
+    });
+  };
+
+  useEffect(() => {
+    const handlePointerDown = (event: MouseEvent) => {
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) return;
+      if (target.closest("[data-transaction-menu]")) return;
+      setOpenMenuId(null);
+      setMenuPosition(null);
+    };
+
+    document.addEventListener("mousedown", handlePointerDown);
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!openMenuId) {
+      return;
+    }
+
+    const updatePosition = () => {
+      updateMenuPosition(openMenuId);
+    };
+    window.addEventListener("resize", updatePosition);
+    window.addEventListener("scroll", updatePosition, true);
+
+    return () => {
+      window.removeEventListener("resize", updatePosition);
+      window.removeEventListener("scroll", updatePosition, true);
+    };
+  }, [openMenuId]);
 
   const filteredTransactions = transactions.filter(
     (transaction) =>
@@ -52,7 +106,9 @@ const Transactions = () => {
       </div>
 
       <div className="flex flex-wrap gap-2 px-1">
-        <button className={buttonClass("ALL")} onClick={() => setTransactionsType("ALL")}>
+        <button
+          className={buttonClass("ALL")}
+          onClick={() => setTransactionsType("ALL")}>
           {copy.all}
         </button>
         <button
@@ -81,19 +137,30 @@ const Transactions = () => {
             meta={`${transaction.category} | ${formatIsoDate(transaction.date, locale)}`}
             actions={
               !transaction.lobbyId ? (
-                <div className="flex gap-2">
+                <div data-transaction-menu>
                   <button
                     type="button"
-                    onClick={() => startEditingTransaction(transaction.id)}
-                    className="theme-button-secondary rounded-lg px-3 py-2 text-xs font-medium">
-                    {copy.edit}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => void deleteTransaction(transaction.id)}
-                    disabled={isSubmitting}
-                    className="theme-status-error rounded-lg px-3 py-2 text-xs font-medium disabled:cursor-not-allowed disabled:opacity-70">
-                    {copy.delete}
+                    ref={(node) => {
+                      menuButtonRefs.current[transaction.id] = node;
+                    }}
+                    aria-label="Open transaction actions"
+                    aria-expanded={openMenuId === transaction.id}
+                    onClick={() => {
+                      setOpenMenuId((current) => {
+                        const nextId =
+                          current === transaction.id ? null : transaction.id;
+
+                        if (nextId) {
+                          updateMenuPosition(nextId);
+                        } else {
+                          setMenuPosition(null);
+                        }
+
+                        return nextId;
+                      });
+                    }}
+                    className="theme-button-secondary grid h-9 w-9 place-items-center rounded-lg">
+                    <EllipsisVertical size={16} />
                   </button>
                 </div>
               ) : null
@@ -119,6 +186,41 @@ const Transactions = () => {
           </div>
         )}
       </div>
+
+      {openMenuId && menuPosition
+        ? createPortal(
+            <div
+              data-transaction-menu
+              className="theme-card-default fixed z-100 min-w-35 rounded-xl p-1 shadow-[0_18px_40px_rgba(16,38,33,0.18)]"
+              style={{
+                top: menuPosition.top,
+                left: menuPosition.left,
+              }}>
+              <button
+                type="button"
+                onClick={() => {
+                  startEditingTransaction(openMenuId);
+                  setOpenMenuId(null);
+                  setMenuPosition(null);
+                }}
+                className="theme-button-secondary flex w-full items-center justify-start rounded-lg px-3 py-2 text-xs font-medium">
+                {copy.edit}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setOpenMenuId(null);
+                  setMenuPosition(null);
+                  void deleteTransaction(openMenuId);
+                }}
+                disabled={isSubmitting}
+                className="theme-status-error mt-1 flex w-full items-center justify-start rounded-lg px-3 py-2 text-xs font-medium disabled:cursor-not-allowed disabled:opacity-70">
+                {copy.delete}
+              </button>
+            </div>,
+            document.body,
+          )
+        : null}
     </div>
   );
 };

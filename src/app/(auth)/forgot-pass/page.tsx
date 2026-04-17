@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import Link from "next/link";
+import { getCopy } from "@/features/settings/copy";
 import { preferencesCookieKey } from "@/features/settings/preferences";
 import { getServerPreferences } from "@/features/settings/server-preferences";
 import { isAuth0Configured } from "@/lib/auth/auth0";
@@ -9,6 +10,7 @@ export default async function ForgotPassPage() {
   const preferences = getServerPreferences(
     cookieStore.get(preferencesCookieKey)?.value,
   );
+  const copy = getCopy(preferences?.language ?? "MN");
   const loginHref = `/auth/login?returnTo=${encodeURIComponent(
     preferences?.landingPage ?? "/pocketDashboard",
   )}`;
@@ -19,60 +21,59 @@ export default async function ForgotPassPage() {
         <section className="panel-surface hidden rounded-3xl p-6 lg:flex lg:flex-col lg:justify-between">
           <div>
             <p className="soft-text text-xs font-semibold uppercase tracking-[0.16em]">
-              Password recovery
+              {copy.passwordRecovery}
             </p>
             <h1 className="theme-heading mt-3 text-3xl font-semibold leading-tight">
               {isAuth0Configured
-                ? "Reset password through Auth0"
-                : "Reset your password"}
+                ? copy.resetThroughAuth0
+                : copy.resetPassword}
             </h1>
             <p className="soft-text mt-2 max-w-sm text-sm leading-6">
               {isAuth0Configured
-                ? "Auth0 Universal Login already includes password recovery, so the reset flow stays outside your app code."
-                : "Configure Auth0 to use hosted password reset through Universal Login."}
+                ? copy.auth0RecoveryDescription
+                : copy.auth0RecoveryDisabled}
             </p>
           </div>
 
           <div className="theme-user-card theme-text rounded-2xl p-4 text-sm">
             {isAuth0Configured
-              ? "Open the hosted login screen and use the built-in Forgot password action there."
-              : "After reset, sign in again to continue your dashboard."}
+              ? copy.auth0RecoveryHint
+              : copy.auth0RecoverySigninHint}
           </div>
         </section>
 
         <section className="panel-surface rounded-3xl p-4 sm:p-6">
           <div className="mb-5">
             <p className="soft-text text-xs font-semibold uppercase tracking-[0.16em]">
-              Recovery
+              {copy.recoveryEyebrow}
             </p>
             <h2 className="theme-heading mt-1 text-2xl font-semibold">
-              Forgot password
+              {copy.recoveryTitle}
             </h2>
           </div>
 
           {isAuth0Configured ? (
             <div className="space-y-3">
               <p className="theme-muted text-sm leading-6">
-                Continue to Auth0 login, then click the built-in password reset link.
+                {copy.resetFlowDescription}
               </p>
 
               <a
                 href={loginHref}
                 className="theme-button-primary block w-full rounded-xl py-2.5 text-center text-sm font-semibold">
-                Continue to Auth0
+                {copy.continueToAuth0}
               </a>
             </div>
           ) : (
             <div className="theme-status-warning rounded-2xl p-4 text-sm leading-6">
-              Password reset is handled only by Auth0 Universal Login. Add the Auth0
-              environment variables, then use the hosted login screen.
+              {copy.auth0ResetNotConfigured}
             </div>
           )}
 
           <p className="theme-muted mt-4 text-center text-sm">
-            Back to{" "}
+            {copy.backTo}{" "}
             <Link href="/login" className="theme-icon font-medium hover:underline">
-              Login
+              {copy.loginTitle}
             </Link>
           </p>
         </section>
