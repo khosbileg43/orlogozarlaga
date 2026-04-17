@@ -114,6 +114,12 @@ export function applyThemePreference(theme: ThemePreference) {
   );
 }
 
+export function resolveLanguageCode(
+  language: LanguagePreference,
+): "mn" | "en" {
+  return language === "EN" ? "en" : "mn";
+}
+
 export function readStoredPreferences(): UserPreferences {
   if (typeof window === "undefined") {
     return defaultPreferences;
@@ -165,4 +171,3 @@ export function persistPreferences(preferences: UserPreferences) {
     }),
   );
 }
-

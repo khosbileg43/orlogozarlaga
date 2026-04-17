@@ -189,7 +189,7 @@ export default function SettingsPage() {
 
       setName(nextName);
       setInitialName(nextName);
-      setStatus("Saved");
+      setStatus(copy.saved);
 
       if (typeof window !== "undefined") {
         window.localStorage.setItem(displayNameStorageKey, nextDisplayName);
@@ -273,7 +273,7 @@ export default function SettingsPage() {
 
           <FieldCard icon={<Mail size={15} />} label={copy.email}>
             <p className="theme-text text-sm font-medium">
-              {isLoading ? "Loading..." : email || "-"}
+              {isLoading ? copy.loading : email || "-"}
             </p>
           </FieldCard>
 
