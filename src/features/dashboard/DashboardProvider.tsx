@@ -28,6 +28,17 @@ type TransactionCreateInput = {
   dateIso: string;
 };
 
+type TransactionUpdateInput = {
+  transactionId: string;
+  accountId?: string;
+  toAccountId?: string | null;
+  type?: TransactionType;
+  category?: string;
+  amount?: number;
+  description?: string;
+  dateIso?: string;
+};
+
 type AccountCreateInput = {
   name: string;
 };
@@ -38,12 +49,17 @@ type DashboardContextValue = {
   accounts: DashboardAccount[];
   summary: DashboardSummary;
   transactions: DashboardTransaction[];
+  editingTransaction: DashboardTransaction | null;
   isLoadingAccounts: boolean;
   isLoadingMonthData: boolean;
   isSubmitting: boolean;
   error: string | null;
   createAccount: (input: AccountCreateInput) => Promise<boolean>;
   createTransaction: (input: TransactionCreateInput) => Promise<boolean>;
+  startEditingTransaction: (transactionId: string) => void;
+  cancelEditingTransaction: () => void;
+  updateTransaction: (input: TransactionUpdateInput) => Promise<boolean>;
+  deleteTransaction: (transactionId: string) => Promise<boolean>;
   refreshAll: () => Promise<void>;
 };
 
@@ -74,6 +90,7 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
   const [accounts, setAccounts] = useState<DashboardAccount[]>([]);
   const [summary, setSummary] = useState<DashboardSummary>(emptySummary);
   const [transactions, setTransactions] = useState<DashboardTransaction[]>([]);
+  const [editingTransactionId, setEditingTransactionId] = useState<string | null>(null);
   const [isLoadingAccounts, setIsLoadingAccounts] = useState(true);
   const [isLoadingMonthData, setIsLoadingMonthData] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -222,6 +239,70 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
     [loadAccounts, loadMonthData, month],
   );
 
+  const updateTransaction = useCallback(
+    async (input: TransactionUpdateInput) => {
+      setIsSubmitting(true);
+      try {
+        const response = await fetch(`/api/transactions/${input.transactionId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ...(typeof input.accountId !== "undefined" ? { accountId: input.accountId } : {}),
+            ...(typeof input.toAccountId !== "undefined"
+              ? { toAccountId: input.toAccountId }
+              : {}),
+            ...(typeof input.type !== "undefined" ? { type: input.type } : {}),
+            ...(typeof input.category !== "undefined" ? { category: input.category } : {}),
+            ...(typeof input.amount !== "undefined" ? { amount: input.amount } : {}),
+            ...(typeof input.description !== "undefined"
+              ? { description: input.description || null }
+              : {}),
+            ...(typeof input.dateIso !== "undefined" ? { date: input.dateIso } : {}),
+          }),
+        });
+        await parseApiResponseOrThrow<{ transaction: DashboardTransaction }>(response);
+        await Promise.all([loadAccounts(), loadMonthData(month)]);
+        setEditingTransactionId(null);
+        setError(null);
+        return true;
+      } catch (e: unknown) {
+        const message =
+          e instanceof Error ? e.message : "Failed to update transaction";
+        setError(message);
+        return false;
+      } finally {
+        setIsSubmitting(false);
+      }
+    },
+    [loadAccounts, loadMonthData, month],
+  );
+
+  const deleteTransaction = useCallback(
+    async (transactionId: string) => {
+      setIsSubmitting(true);
+      try {
+        const response = await fetch(`/api/transactions/${transactionId}`, {
+          method: "DELETE",
+        });
+        await parseApiResponseOrThrow<{ transaction: DashboardTransaction }>(response);
+        await Promise.all([loadAccounts(), loadMonthData(month)]);
+        setEditingTransactionId((current) =>
+          current === transactionId ? null : current,
+        );
+        setError(null);
+        return true;
+      } catch (e: unknown) {
+        const message =
+          e instanceof Error ? e.message : "Failed to delete transaction";
+        setError(message);
+        return false;
+      } finally {
+        setIsSubmitting(false);
+      }
+    },
+    [loadAccounts, loadMonthData, month],
+  );
+
   useEffect(() => {
     void loadAccounts();
   }, [loadAccounts]);
@@ -240,6 +321,9 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
     void loadMonthData(month);
   }, [loadMonthData, month, monthStart]);
 
+  const editingTransaction =
+    transactions.find((transaction) => transaction.id === editingTransactionId) ?? null;
+
   const value = useMemo<DashboardContextValue>(
     () => ({
       month,
@@ -247,12 +331,17 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
       accounts,
       summary,
       transactions,
+      editingTransaction,
       isLoadingAccounts,
       isLoadingMonthData,
       isSubmitting,
       error,
       createAccount,
       createTransaction,
+      startEditingTransaction: (transactionId: string) => setEditingTransactionId(transactionId),
+      cancelEditingTransaction: () => setEditingTransactionId(null),
+      updateTransaction,
+      deleteTransaction,
       refreshAll,
     }),
     [
@@ -260,12 +349,15 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
       accounts,
       summary,
       transactions,
+      editingTransaction,
       isLoadingAccounts,
       isLoadingMonthData,
       isSubmitting,
       error,
       createAccount,
       createTransaction,
+      updateTransaction,
+      deleteTransaction,
       refreshAll,
     ],
   );

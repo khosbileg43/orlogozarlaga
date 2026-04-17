@@ -1,6 +1,7 @@
 export type LobbyRole = "OWNER" | "MEMBER";
 export type LobbyMemberStatus = "ACTIVE" | "LEFT";
 export type LobbyTransactionType = "INCOME" | "EXPENSE";
+export type LobbyActionMode = "TRANSACTION" | "TRANSFER";
 
 export type Lobby = {
   id: string;
@@ -105,6 +106,12 @@ export type LobbyMemberContribution = {
   transactionCount: number;
 };
 
+export type PocketAccount = {
+  id: string;
+  name: string;
+  balance: number;
+};
+
 export type CreateLobbyTransactionInput = {
   memberId: string;
   type: LobbyTransactionType;
@@ -112,6 +119,32 @@ export type CreateLobbyTransactionInput = {
   amount: number;
   description?: string;
   date: string;
+};
+
+export type TransferFromPocketInput = {
+  accountId: string;
+  memberId: string;
+  amount: number;
+  description?: string;
+  date: string;
+};
+
+export type TransferFromPocketResult = {
+  personalTransaction: {
+    id: string;
+    type: "TRANSFER";
+    accountId: string;
+    lobbyId: string | null;
+    amount: number;
+    category: string;
+    description: string | null;
+    date: string;
+  };
+  lobbyTransaction: LobbyTransaction;
+  balances: {
+    accountBalance: number;
+    lobbyBalance: number;
+  };
 };
 
 export type CreateLobbyInput = {

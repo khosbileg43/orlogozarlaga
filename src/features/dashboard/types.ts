@@ -29,4 +29,5 @@ export type DashboardTransaction = {
   date: string;
   accountId: string;
   toAccountId: string | null;
+  lobbyId: string | null;
 };

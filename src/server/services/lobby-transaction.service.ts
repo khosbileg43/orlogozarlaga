@@ -10,9 +10,11 @@ import {
   NotFoundError,
   ValidationAppError,
 } from "@/utils/errors";
+import { accountRepo } from "../repositories/account.repo";
 import { lobbyMemberRepo } from "../repositories/lobby-member.repo";
 import { lobbyTransactionRepo } from "../repositories/lobby-transaction.repo";
 import { lobbyRepo } from "../repositories/lobby.repo";
+import { transactionRepo } from "../repositories/transaction.repo";
 
 type LobbyMemberRecord = Awaited<
   ReturnType<typeof lobbyMemberRepo.findActiveByLobbyIdAndUserId>
@@ -95,6 +97,36 @@ function assertCreateTransactionAccess(
   throw new ForbiddenError(
     "Only the lobby owner can create transactions for other members",
   );
+}
+
+function assertPocketTransferEditable(
+  existing: NonNullable<LobbyTransactionRecord>,
+  input: {
+    memberId?: string;
+    type?: LobbyTransactionTypeDto;
+    category?: string;
+  },
+) {
+  if (typeof input.memberId !== "undefined" && input.memberId !== existing.memberId) {
+    throw new ValidationAppError(
+      "Pocket transfer transactions cannot change the member",
+    );
+  }
+
+  if (typeof input.type !== "undefined" && input.type !== "INCOME") {
+    throw new ValidationAppError(
+      "Pocket transfer transactions must remain INCOME",
+    );
+  }
+
+  if (
+    typeof input.category !== "undefined" &&
+    input.category.trim() !== existing.category
+  ) {
+    throw new ValidationAppError(
+      "Pocket transfer transactions cannot change the category",
+    );
+  }
 }
 
 export const lobbyTransactionService = {
@@ -222,6 +254,18 @@ export const lobbyTransactionService = {
         throw new NotFoundError("Lobby transaction not found");
       }
 
+      const linkedPersonalTransaction = existing.personalTransactionId
+        ? await transactionRepo.findByIdTx(tx, existing.personalTransactionId)
+        : null;
+
+      if (existing.personalTransactionId && !linkedPersonalTransaction) {
+        throw new NotFoundError("Linked pocket transaction not found");
+      }
+
+      if (linkedPersonalTransaction) {
+        assertPocketTransferEditable(existing, input);
+      }
+
       const nextMemberId = input.memberId ?? existing.memberId;
 
       const nextMember = await lobbyMemberRepo.findByIdAndLobbyIdTx(
@@ -245,6 +289,46 @@ export const lobbyTransactionService = {
       });
       if (updatedLobby.count === 0) {
         throw new NotFoundError("Lobby not found");
+      }
+
+      if (linkedPersonalTransaction) {
+        const accountAdjustment = existing.amount - nextAmount;
+
+        if (accountAdjustment > 0) {
+          const credited = await accountRepo.incrementBalanceIfOwnedTx(tx, {
+            accountId: linkedPersonalTransaction.accountId,
+            userId: linkedPersonalTransaction.userId,
+            by: accountAdjustment,
+          });
+
+          if (credited.count === 0) {
+            throw new NotFoundError("Account not found");
+          }
+        }
+
+        if (accountAdjustment < 0) {
+          const debited = await accountRepo.decrementBalanceIfOwnedAndSufficientTx(tx, {
+            accountId: linkedPersonalTransaction.accountId,
+            userId: linkedPersonalTransaction.userId,
+            amount: Math.abs(accountAdjustment),
+          });
+
+          if (debited.count === 0) {
+            throw new ValidationAppError("Insufficient account balance");
+          }
+        }
+
+        await transactionRepo.updateByIdAndUserIdTx(tx, {
+          id: linkedPersonalTransaction.id,
+          userId: linkedPersonalTransaction.userId,
+          data: {
+            ...(typeof input.amount !== "undefined" ? { amount: input.amount } : {}),
+            ...(typeof input.description !== "undefined"
+              ? { description: input.description?.trim() || null }
+              : {}),
+            ...(typeof input.date !== "undefined" ? { date: input.date } : {}),
+          },
+        });
       }
 
       const updated = await lobbyTransactionRepo.updateByIdTx(tx, {
@@ -281,6 +365,14 @@ export const lobbyTransactionService = {
         throw new NotFoundError("Lobby transaction not found");
       }
 
+      const linkedPersonalTransaction = existing.personalTransactionId
+        ? await transactionRepo.findByIdTx(tx, existing.personalTransactionId)
+        : null;
+
+      if (existing.personalTransactionId && !linkedPersonalTransaction) {
+        throw new NotFoundError("Linked pocket transaction not found");
+      }
+
       const rollback =
         -balanceEffect(toLobbyTransactionType(existing.type), existing.amount);
       const updatedLobby = await lobbyRepo.incrementBalanceByIdTx(tx, {
@@ -289,6 +381,23 @@ export const lobbyTransactionService = {
       });
       if (updatedLobby.count === 0) {
         throw new NotFoundError("Lobby not found");
+      }
+
+      if (linkedPersonalTransaction) {
+        const refunded = await accountRepo.incrementBalanceIfOwnedTx(tx, {
+          accountId: linkedPersonalTransaction.accountId,
+          userId: linkedPersonalTransaction.userId,
+          by: existing.amount,
+        });
+
+        if (refunded.count === 0) {
+          throw new NotFoundError("Account not found");
+        }
+
+        await transactionRepo.deleteByIdAndUserIdTx(tx, {
+          id: linkedPersonalTransaction.id,
+          userId: linkedPersonalTransaction.userId,
+        });
       }
 
       const deleted = await lobbyTransactionRepo.deleteByIdTx(tx, transactionId);

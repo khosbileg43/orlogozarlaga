@@ -3,7 +3,10 @@ jest.mock("@/lib/db/prisma", () => ({
 }));
 
 jest.mock("@/server/repositories/account.repo", () => ({
-  accountRepo: { incrementBalanceIfOwnedTx: jest.fn() },
+  accountRepo: {
+    incrementBalanceIfOwnedTx: jest.fn(),
+    decrementBalanceIfOwnedAndSufficientTx: jest.fn(),
+  },
 }));
 
 jest.mock("@/server/repositories/transaction.repo", () => ({
@@ -174,5 +177,117 @@ describe("transactionService", () => {
     ).rejects.toThrow("toAccountId is required for TRANSFER");
 
     expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+
+  it("updates an expense transaction amount and rebalances the same account", async () => {
+    const tx = {} as never;
+    const existing = {
+      id: "t3",
+      type: "EXPENSE",
+      category: "Food",
+      amount: 500,
+      description: "Lunch",
+      date: new Date("2026-03-02T10:00:00.000Z"),
+      accountId: "a1",
+      toAccountId: null,
+      lobbyId: null,
+    };
+
+    (prisma.$transaction as jest.Mock).mockImplementation(async (fn) => fn(tx));
+    (transactionRepo.findByIdAndUserIdTx as jest.Mock).mockResolvedValue(existing);
+    (accountRepo.incrementBalanceIfOwnedTx as jest.Mock).mockResolvedValueOnce({ count: 1 });
+    (accountRepo.decrementBalanceIfOwnedAndSufficientTx as jest.Mock).mockResolvedValue({
+      count: 1,
+    });
+    (transactionRepo.updateByIdAndUserIdTx as jest.Mock).mockResolvedValue({
+      ...existing,
+      amount: 400,
+      description: "Adjusted lunch",
+    });
+
+    const result = await transactionService.update("u1", "t3", {
+      amount: 400,
+      description: "Adjusted lunch",
+    });
+
+    expect(accountRepo.incrementBalanceIfOwnedTx).toHaveBeenNthCalledWith(1, tx, {
+      accountId: "a1",
+      userId: "u1",
+      by: 500,
+    });
+    expect(accountRepo.decrementBalanceIfOwnedAndSufficientTx).toHaveBeenCalledWith(tx, {
+      accountId: "a1",
+      userId: "u1",
+      amount: 400,
+    });
+    expect(transactionRepo.updateByIdAndUserIdTx).toHaveBeenCalledWith(tx, {
+      id: "t3",
+      userId: "u1",
+      data: expect.objectContaining({
+        amount: 400,
+        description: "Adjusted lunch",
+      }),
+    });
+    expect(result.amount).toBe(400);
+  });
+
+  it("updates a transfer transaction and rebalances source and destination accounts", async () => {
+    const tx = {} as never;
+    const existing = {
+      id: "t4",
+      type: "TRANSFER",
+      category: "Between accounts",
+      amount: 1200,
+      description: "Move to savings",
+      date: new Date("2026-03-03T10:00:00.000Z"),
+      accountId: "a1",
+      toAccountId: "a2",
+      lobbyId: null,
+    };
+
+    (prisma.$transaction as jest.Mock).mockImplementation(async (fn) => fn(tx));
+    (transactionRepo.findByIdAndUserIdTx as jest.Mock).mockResolvedValue(existing);
+    (accountRepo.incrementBalanceIfOwnedTx as jest.Mock)
+      .mockResolvedValueOnce({ count: 1 })
+      .mockResolvedValueOnce({ count: 1 })
+      .mockResolvedValueOnce({ count: 1 });
+    (accountRepo.decrementBalanceIfOwnedAndSufficientTx as jest.Mock).mockResolvedValue({
+      count: 1,
+    });
+    (transactionRepo.updateByIdAndUserIdTx as jest.Mock).mockResolvedValue({
+      ...existing,
+      accountId: "a1",
+      toAccountId: "a3",
+      amount: 800,
+    });
+
+    const result = await transactionService.update("u1", "t4", {
+      toAccountId: "a3",
+      amount: 800,
+      type: "TRANSFER",
+      category: "Between accounts",
+    });
+
+    expect(accountRepo.incrementBalanceIfOwnedTx).toHaveBeenNthCalledWith(1, tx, {
+      accountId: "a1",
+      userId: "u1",
+      by: 1200,
+    });
+    expect(accountRepo.incrementBalanceIfOwnedTx).toHaveBeenNthCalledWith(2, tx, {
+      accountId: "a2",
+      userId: "u1",
+      by: -1200,
+    });
+    expect(accountRepo.decrementBalanceIfOwnedAndSufficientTx).toHaveBeenCalledWith(tx, {
+      accountId: "a1",
+      userId: "u1",
+      amount: 800,
+    });
+    expect(accountRepo.incrementBalanceIfOwnedTx).toHaveBeenNthCalledWith(3, tx, {
+      accountId: "a3",
+      userId: "u1",
+      by: 800,
+    });
+    expect(result.toAccountId).toBe("a3");
   });
 });

@@ -19,7 +19,8 @@ import { getCopy } from "@/features/settings/copy";
 import { useUserPreferences } from "@/features/settings/useUserPreferences";
 
 const Transactions = () => {
-  const { transactions, isLoadingMonthData } = useDashboard();
+  const { transactions, isLoadingMonthData, isSubmitting, startEditingTransaction, deleteTransaction } =
+    useDashboard();
   const { preferences } = useUserPreferences();
   const copy = getCopy(preferences.language);
   const locale = preferences.language === "MN" ? "mn-MN" : "en-US";
@@ -78,6 +79,25 @@ const Transactions = () => {
             Icon={iconByType[transaction.type] ?? ChartNoAxesCombined}
             title={transaction.description ?? transaction.category}
             meta={`${transaction.category} | ${formatIsoDate(transaction.date, locale)}`}
+            actions={
+              !transaction.lobbyId ? (
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => startEditingTransaction(transaction.id)}
+                    className="theme-button-secondary rounded-lg px-3 py-2 text-xs font-medium">
+                    {copy.edit}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void deleteTransaction(transaction.id)}
+                    disabled={isSubmitting}
+                    className="theme-status-error rounded-lg px-3 py-2 text-xs font-medium disabled:cursor-not-allowed disabled:opacity-70">
+                    {copy.delete}
+                  </button>
+                </div>
+              ) : null
+            }
             amount={formatSignedYen(
               transaction.type,
               transaction.amount,

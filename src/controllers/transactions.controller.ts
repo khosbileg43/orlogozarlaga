@@ -103,7 +103,12 @@ export const transactionsController = {
       const parsed = updateTransactionSchema.parse(body);
 
       const updated = await transactionService.update(user.id, parsedId, {
+        accountId: parsed.accountId,
+        toAccountId:
+          typeof parsed.toAccountId !== "undefined" ? parsed.toAccountId : undefined,
+        type: parsed.type,
         category: parsed.category,
+        amount: parsed.amount,
         description: parsed.description,
         date: parsed.date ? new Date(parsed.date) : undefined,
       });

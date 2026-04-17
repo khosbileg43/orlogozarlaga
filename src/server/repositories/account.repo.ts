@@ -17,6 +17,17 @@ export const accountRepo = {
     });
   },
 
+  findByIdAndUserIdTx(
+    tx: Prisma.TransactionClient,
+    accountId: string,
+    userId: string,
+  ) {
+    return tx.account.findFirst({
+      where: { id: accountId, userId },
+      select: { id: true, name: true, balance: true, userId: true },
+    });
+  },
+
   findByNameAndUserId(name: string, userId: string) {
     return prisma.account.findFirst({
       where: { userId, name },
@@ -53,6 +64,26 @@ export const accountRepo = {
     return tx.account.updateMany({
       where: { id: args.accountId, userId: args.userId },
       data: { balance: { increment: args.by } },
+    });
+  },
+
+  decrementBalanceIfOwnedAndSufficientTx(
+    tx: Prisma.TransactionClient,
+    args: {
+      accountId: string;
+      userId: string;
+      amount: number;
+    },
+  ) {
+    return tx.account.updateMany({
+      where: {
+        id: args.accountId,
+        userId: args.userId,
+        balance: { gte: args.amount },
+      },
+      data: {
+        balance: { decrement: args.amount },
+      },
     });
   },
 };

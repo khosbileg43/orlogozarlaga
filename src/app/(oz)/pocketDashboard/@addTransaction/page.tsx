@@ -18,10 +18,13 @@ const AddTransaction = () => {
   const {
     accounts,
     summary,
+    editingTransaction,
     isLoadingAccounts,
     isSubmitting,
     error,
+    cancelEditingTransaction,
     createTransaction,
+    updateTransaction,
   } = useDashboard();
   const { preferences } = useUserPreferences();
   const copy = getCopy(preferences.language);
@@ -82,10 +85,41 @@ const AddTransaction = () => {
   const selectedCategoryTotal =
     categoryTotals.find((item) => item.category === category)?.amount ?? 0;
 
+  React.useEffect(() => {
+    if (!editingTransaction) {
+      setTransactionType("INCOME");
+      setAccountId("");
+      setToAccountId("");
+      setIncomeCategory(incomeCategories[0] ?? "");
+      setExpenseCategory(expenseCategories[0] ?? "");
+      setTransferCategory(transferCategories[0] ?? "");
+      setAmount("");
+      setDescription("");
+      setDate(new Date().toISOString().slice(0, 10));
+      setFormError(null);
+      return;
+    }
+
+    setTransactionType(editingTransaction.type);
+    setAccountId(editingTransaction.accountId);
+    setToAccountId(editingTransaction.toAccountId ?? "");
+    if (editingTransaction.type === "INCOME") {
+      setIncomeCategory(editingTransaction.category);
+    } else if (editingTransaction.type === "EXPENSE") {
+      setExpenseCategory(editingTransaction.category);
+    } else {
+      setTransferCategory(editingTransaction.category);
+    }
+    setAmount(String(editingTransaction.amount));
+    setDescription(editingTransaction.description ?? "");
+    setDate(editingTransaction.date.slice(0, 10));
+    setFormError(null);
+  }, [editingTransaction]);
+
   async function handleSubmit() {
     setFormError(null);
 
-    if (!effectiveAccountId) {
+    if (!editingTransaction && !effectiveAccountId) {
       setFormError("Please select an account.");
       return;
     }
@@ -101,7 +135,7 @@ const AddTransaction = () => {
       return;
     }
 
-    if (transactionType === "TRANSFER" && !effectiveToAccountId) {
+    if (!editingTransaction && transactionType === "TRANSFER" && !effectiveToAccountId) {
       setFormError("Please select a destination account.");
       return;
     }
@@ -113,15 +147,26 @@ const AddTransaction = () => {
     }
 
     const dateIso = new Date(`${date}T00:00:00.000Z`).toISOString();
-    const success = await createTransaction({
-      accountId: effectiveAccountId,
-      toAccountId: transactionType === "TRANSFER" ? effectiveToAccountId : undefined,
-      type: transactionType,
-      category: categoryValue,
-      amount: amountValue,
-      description: description.trim() || undefined,
-      dateIso,
-    });
+    const success = editingTransaction
+      ? await updateTransaction({
+          transactionId: editingTransaction.id,
+          accountId: effectiveAccountId,
+          toAccountId: transactionType === "TRANSFER" ? effectiveToAccountId : null,
+          type: transactionType,
+          category: categoryValue,
+          amount: amountValue,
+          description: description.trim() || undefined,
+          dateIso,
+        })
+      : await createTransaction({
+          accountId: effectiveAccountId,
+          toAccountId: transactionType === "TRANSFER" ? effectiveToAccountId : undefined,
+          type: transactionType,
+          category: categoryValue,
+          amount: amountValue,
+          description: description.trim() || undefined,
+          dateIso,
+        });
 
     if (!success) {
       return;
@@ -129,6 +174,9 @@ const AddTransaction = () => {
 
     setAmount("");
     setDescription("");
+    if (editingTransaction) {
+      cancelEditingTransaction();
+    }
   }
 
   return (
@@ -143,6 +191,17 @@ const AddTransaction = () => {
         ]}
         containerClassName="theme-surface-soft grid w-full grid-cols-3 gap-1 rounded-xl p-1"
       />
+
+      {editingTransaction ? (
+        <div className="theme-surface-soft mt-3 rounded-xl px-3 py-2.5 text-sm">
+          <p className="theme-muted text-xs uppercase tracking-[0.12em]">
+            {copy.editTransaction}
+          </p>
+          <p className="theme-text mt-1 font-medium">
+            {editingTransaction.description ?? editingTransaction.category}
+          </p>
+        </div>
+      ) : null}
 
       <div className="mt-3 w-full space-y-3">
         <div className="relative w-full">
@@ -326,8 +385,21 @@ const AddTransaction = () => {
           onClick={() => void handleSubmit()}
           disabled={isSubmitting || isLoadingAccounts || !accounts.length}
           className="theme-button-primary mt-1 w-full cursor-pointer rounded-xl py-2.5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-70">
-          {isSubmitting ? copy.saving : copy.addTransaction}
+          {isSubmitting
+            ? copy.saving
+            : editingTransaction
+              ? copy.saveTransaction
+              : copy.addTransaction}
         </button>
+
+        {editingTransaction ? (
+          <button
+            type="button"
+            onClick={cancelEditingTransaction}
+            className="theme-button-secondary w-full rounded-xl py-2.5 text-sm font-medium">
+            {copy.cancelEdit}
+          </button>
+        ) : null}
       </div>
     </div>
   );

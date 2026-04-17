@@ -17,15 +17,20 @@ import type {
   UpdateLobbyTransactionRequestDto,
   UpdateLobbyTransactionResponseDto,
   GetLobbyTransactionResponseDto,
+  TransferFromPocketRequestDto,
+  TransferFromPocketResponseDto,
 } from "@/types";
 import type {
   CreateLobbyTransactionInput,
   LobbyDetail,
   LobbyListItem,
+  PocketAccount,
   LobbyMember,
   LobbyMemberContribution,
   LobbySummary,
   LobbyTransaction,
+  TransferFromPocketInput,
+  TransferFromPocketResult,
   UpdateLobbyTransactionInput,
 } from "./types";
 
@@ -138,6 +143,33 @@ function mapLobbySummary(summary: GetLobbySummaryResponseDto["summary"]): LobbyS
   };
 }
 
+function mapPocketAccount(account: { id: string; name: string; balance: number }): PocketAccount {
+  return {
+    id: account.id,
+    name: account.name,
+    balance: account.balance,
+  };
+}
+
+function mapTransferFromPocketResult(
+  result: TransferFromPocketResponseDto,
+): TransferFromPocketResult {
+  return {
+    personalTransaction: {
+      id: result.personalTransaction.id,
+      type: "TRANSFER",
+      accountId: result.personalTransaction.accountId,
+      lobbyId: result.personalTransaction.lobbyId,
+      amount: result.personalTransaction.amount,
+      category: result.personalTransaction.category,
+      description: result.personalTransaction.description,
+      date: result.personalTransaction.date,
+    },
+    lobbyTransaction: mapLobbyTransaction(result.lobbyTransaction),
+    balances: result.balances,
+  };
+}
+
 function mapLobbyMemberContribution(
   member: GetLobbyMemberSummaryResponseDto["members"][number],
 ): LobbyMemberContribution {
@@ -168,6 +200,17 @@ export async function listLobbies(): Promise<LobbyListItem[]> {
   }
 
   return payload.data.lobbies.map(mapLobbyListItem);
+}
+
+export async function listPocketAccounts(): Promise<PocketAccount[]> {
+  const response = await fetch("/api/accounts", { cache: "no-store" });
+  const payload = await parseJson<{ accounts: PocketAccount[] }>(response);
+
+  if (!response.ok || !payload.success || !payload.data) {
+    throw new Error(getErrorMessage(response, payload, "List pocket accounts"));
+  }
+
+  return payload.data.accounts.map(mapPocketAccount);
 }
 
 export async function createLobby(input: CreateLobbyRequestDto): Promise<LobbyDetail> {
@@ -411,4 +454,32 @@ export async function deleteLobbyMember(lobbyId: string, memberId: string): Prom
   if (!response.ok || !payload.success) {
     throw new Error(getErrorMessage(response, payload, "Delete lobby member"));
   }
+}
+
+export async function transferFromPocket(
+  lobbyId: string,
+  input: TransferFromPocketInput,
+): Promise<TransferFromPocketResult> {
+  const payloadBody: TransferFromPocketRequestDto = {
+    accountId: input.accountId,
+    memberId: input.memberId,
+    amount: input.amount,
+    description: input.description?.trim() || null,
+    date: input.date,
+  };
+
+  const response = await fetch(`/api/lobbies/${lobbyId}/transfer-from-pocket`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+    },
+    body: JSON.stringify(payloadBody),
+  });
+  const payload = await parseJson<TransferFromPocketResponseDto>(response);
+
+  if (!response.ok || !payload.success || !payload.data) {
+    throw new Error(getErrorMessage(response, payload, "Transfer from pocket"));
+  }
+
+  return mapTransferFromPocketResult(payload.data);
 }

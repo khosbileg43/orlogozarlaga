@@ -5,6 +5,7 @@ const lobbyTransactionSelect = {
   id: true,
   lobbyId: true,
   memberId: true,
+  personalTransactionId: true,
   type: true,
   category: true,
   amount: true,
@@ -80,6 +81,7 @@ export const lobbyTransactionRepo = {
     data: {
       lobbyId: string;
       memberId: string;
+      personalTransactionId?: string | null;
       type: "INCOME" | "EXPENSE" | "TRANSFER";
       category: string;
       amount: number;
@@ -99,6 +101,7 @@ export const lobbyTransactionRepo = {
       id: string;
       data: {
         memberId?: string;
+        personalTransactionId?: string | null;
         type?: "INCOME" | "EXPENSE" | "TRANSFER";
         category?: string;
         amount?: number;

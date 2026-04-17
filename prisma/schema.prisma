@@ -91,17 +91,29 @@ model Transaction {
   description          String?
   date                 DateTime
   debtSettlementEvent  DebtEvent? @relation("DebtSettlementTransaction")
+  id          String          @id @default(cuid())
+  userId      String
+  accountId   String
+  toAccountId String?
+  lobbyId     String?
+  type        TransactionType
+  category    String
+  amount      Int
+  description String?
+  date        DateTime
 
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   account   Account  @relation("SourceAccountTransactions", fields: [accountId], references: [id], onDelete: Cascade)
   toAccount Account? @relation("DestinationAccountTransactions", fields: [toAccountId], references: [id], onDelete: SetNull)
-
+  lobby     Lobby?   @relation(fields: [lobbyId], references: [id], onDelete: SetNull)
+  lobbyTransferMirror LobbyTransaction? @relation("PocketTransferMirror")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([userId, date])
   @@index([accountId, date])
   @@index([toAccountId, date])
+  @@index([lobbyId, date])
 }
 
 model DebtCase {
@@ -160,6 +172,7 @@ model Lobby {
   balance      Int                @default(0)
   createdById  String
   createdBy    User               @relation("LobbyCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  pocketTransfers Transaction[]
   members      LobbyMember[]
   transactions LobbyTransaction[]
   createdAt    DateTime           @default(now())
@@ -187,18 +200,20 @@ model LobbyMember {
 }
 
 model LobbyTransaction {
-  id          String          @id @default(cuid())
-  lobbyId     String
-  memberId    String
-  type        TransactionType
-  category    String
-  amount      Int
-  description String?
-  date        DateTime
-  lobby       Lobby           @relation(fields: [lobbyId], references: [id], onDelete: Cascade)
-  member      LobbyMember     @relation(fields: [memberId], references: [id], onDelete: Cascade)
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
+  id                  String          @id @default(cuid())
+  lobbyId             String
+  memberId            String
+  personalTransactionId String?       @unique
+  type                TransactionType
+  category            String
+  amount              Int
+  description         String?
+  date                DateTime
+  lobby               Lobby           @relation(fields: [lobbyId], references: [id], onDelete: Cascade)
+  member              LobbyMember     @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  personalTransaction Transaction?    @relation("PocketTransferMirror", fields: [personalTransactionId], references: [id], onDelete: SetNull)
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
 
   @@index([lobbyId, date])
   @@index([memberId])

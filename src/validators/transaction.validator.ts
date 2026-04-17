@@ -64,11 +64,48 @@ export const transactionIdParamSchema = z.object({
   transactionId: z.string().min(1),
 });
 
-export const updateTransactionSchema = createTransactionBaseSchema
-  .omit({ accountId: true, toAccountId: true, type: true, amount: true })
-  .partial()
-  .refine((value) => Object.keys(value).length > 0, {
-    message: "At least one field is required",
+export const updateTransactionSchema = z
+  .object({
+    accountId: z.string().min(1).optional(),
+    toAccountId: z.union([z.string().min(1), z.null()]).optional(),
+    type: transactionTypeSchema.optional(),
+    category: z.string().min(1).max(80).optional(),
+    amount: z.number().int().positive().optional(),
+    description: z.union([z.string().max(200), z.null()]).optional(),
+    date: dateStringSchema.optional(),
+  })
+  .superRefine((value, ctx) => {
+    if (Object.keys(value).length === 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "At least one field is required",
+      });
+      return;
+    }
+
+    const nextType = value.type;
+    const nextToAccountId = value.toAccountId;
+
+    if (nextType === "TRANSFER" && !nextToAccountId) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["toAccountId"],
+        message: "toAccountId is required for TRANSFER",
+      });
+    }
+
+    if (
+      typeof nextType !== "undefined" &&
+      nextType !== "TRANSFER" &&
+      typeof nextToAccountId !== "undefined" &&
+      nextToAccountId !== null
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["toAccountId"],
+        message: "toAccountId is only allowed for TRANSFER",
+      });
+    }
   });
 
 export type CreateTransactionInput = z.infer<typeof createTransactionSchema>;

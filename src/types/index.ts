@@ -26,6 +26,7 @@ export type TransactionDto = {
   id: string;
   accountId: string;
   toAccountId: string | null;
+  lobbyId: string | null;
   type: TransactionType;
   category: string;
   amount: number;
@@ -293,6 +294,14 @@ export type CreateLobbyTransactionRequestDto = {
   date: IsoDateString;
 };
 
+export type TransferFromPocketRequestDto = {
+  accountId: string;
+  memberId: string;
+  amount: number;
+  description?: string | null;
+  date: IsoDateString;
+};
+
 export type UpdateLobbyTransactionRequestDto = {
   memberId?: string;
   type?: LobbyTransactionTypeDto;
@@ -473,4 +482,23 @@ export type DeleteDebtCaseResponseDto = {
 
 export type CreateDebtEventResponseDto = {
   debt: DebtCaseApiDto;
+export type TransactionApiDto = {
+  id: string;
+  accountId: string;
+  toAccountId: string | null;
+  lobbyId: string | null;
+  type: TransactionType;
+  category: string;
+  amount: number;
+  description: string | null;
+  date: IsoDateString;
+};
+
+export type TransferFromPocketResponseDto = {
+  personalTransaction: TransactionApiDto;
+  lobbyTransaction: LobbyTransactionApiDto;
+  balances: {
+    accountBalance: number;
+    lobbyBalance: number;
+  };
 };

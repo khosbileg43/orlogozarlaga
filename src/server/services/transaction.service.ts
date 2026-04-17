@@ -9,6 +9,140 @@ function isTransactionType(
   return value === "INCOME" || value === "EXPENSE" || value === "TRANSFER";
 }
 
+function isTransferWithDestination(transaction: {
+  type: "INCOME" | "EXPENSE" | "TRANSFER";
+  toAccountId: string | null;
+}) {
+  return transaction.type === "TRANSFER" && Boolean(transaction.toAccountId);
+}
+
+async function rollbackTransactionBalance(
+  tx: Parameters<typeof accountRepo.incrementBalanceIfOwnedTx>[0],
+  userId: string,
+  transaction: {
+    accountId: string;
+    toAccountId: string | null;
+    type: "INCOME" | "EXPENSE" | "TRANSFER";
+    amount: number;
+  },
+) {
+  if (isTransferWithDestination(transaction)) {
+    const sourceRollback = await accountRepo.incrementBalanceIfOwnedTx(tx, {
+      accountId: transaction.accountId,
+      userId,
+      by: transaction.amount,
+    });
+
+    if (sourceRollback.count === 0) {
+      throw new NotFoundError("Source account not found");
+    }
+
+    const destinationRollback = await accountRepo.incrementBalanceIfOwnedTx(tx, {
+      accountId: transaction.toAccountId!,
+      userId,
+      by: -transaction.amount,
+    });
+
+    if (destinationRollback.count === 0) {
+      throw new NotFoundError("Destination account not found");
+    }
+
+    return;
+  }
+
+  const rollbackDelta = transaction.type === "INCOME" ? -transaction.amount : transaction.amount;
+  const updated = await accountRepo.incrementBalanceIfOwnedTx(tx, {
+    accountId: transaction.accountId,
+    userId,
+    by: rollbackDelta,
+  });
+
+  if (updated.count === 0) {
+    throw new NotFoundError("Account not found");
+  }
+}
+
+async function applyTransactionBalance(
+  tx: Parameters<typeof accountRepo.incrementBalanceIfOwnedTx>[0],
+  userId: string,
+  transaction: {
+    accountId: string;
+    toAccountId: string | null;
+    type: "INCOME" | "EXPENSE" | "TRANSFER";
+    amount: number;
+  },
+) {
+  if (isTransferWithDestination(transaction)) {
+    const sourceUpdated = await accountRepo.decrementBalanceIfOwnedAndSufficientTx(tx, {
+      accountId: transaction.accountId,
+      userId,
+      amount: transaction.amount,
+    });
+
+    if (sourceUpdated.count === 0) {
+      throw new ValidationAppError("Insufficient source account balance");
+    }
+
+    const destinationUpdated = await accountRepo.incrementBalanceIfOwnedTx(tx, {
+      accountId: transaction.toAccountId!,
+      userId,
+      by: transaction.amount,
+    });
+
+    if (destinationUpdated.count === 0) {
+      throw new NotFoundError("Destination account not found");
+    }
+
+    return;
+  }
+
+  if (transaction.type === "EXPENSE") {
+    const updated = await accountRepo.decrementBalanceIfOwnedAndSufficientTx(tx, {
+      accountId: transaction.accountId,
+      userId,
+      amount: transaction.amount,
+    });
+
+    if (updated.count === 0) {
+      throw new ValidationAppError("Insufficient account balance");
+    }
+
+    return;
+  }
+
+  const updated = await accountRepo.incrementBalanceIfOwnedTx(tx, {
+    accountId: transaction.accountId,
+    userId,
+    by: transaction.amount,
+  });
+
+  if (updated.count === 0) {
+    throw new NotFoundError("Account not found");
+  }
+}
+
+function validateNextTransaction(input: {
+  accountId: string;
+  toAccountId: string | null;
+  type: "INCOME" | "EXPENSE" | "TRANSFER";
+}) {
+  if (input.type === "TRANSFER") {
+    if (!input.toAccountId) {
+      throw new ValidationAppError("toAccountId is required for TRANSFER");
+    }
+    if (input.toAccountId === input.accountId) {
+      throw new ValidationAppError(
+        "Source and destination account must be different",
+      );
+    }
+    return;
+  }
+
+  if (input.toAccountId) {
+    throw new ValidationAppError("toAccountId is only allowed for TRANSFER");
+  }
+}
+
 export const transactionService = {
   list(args: {
     userId: string;
@@ -142,7 +276,11 @@ export const transactionService = {
     userId: string,
     transactionId: string,
     input: {
+      accountId?: string;
+      toAccountId?: string | null;
+      type?: "INCOME" | "EXPENSE" | "TRANSFER";
       category?: string;
+      amount?: number;
       description?: string | null;
       date?: Date;
     },
@@ -158,11 +296,47 @@ export const transactionService = {
         throw new NotFoundError("Transaction not found");
       }
 
+      if (existing.lobbyId) {
+        throw new ValidationAppError(
+          "Lobby-linked transfers must be managed from the lobby dashboard",
+        );
+      }
+
+      const nextAccountId = input.accountId ?? existing.accountId;
+      const nextType = input.type ?? existing.type;
+      const nextToAccountId =
+        typeof input.toAccountId !== "undefined" ? input.toAccountId : existing.toAccountId;
+      const nextAmount = input.amount ?? existing.amount;
+
+      validateNextTransaction({
+        accountId: nextAccountId,
+        toAccountId: nextToAccountId ?? null,
+        type: nextType,
+      });
+
+      await rollbackTransactionBalance(tx, userId, {
+        accountId: existing.accountId,
+        toAccountId: existing.toAccountId,
+        type: existing.type,
+        amount: existing.amount,
+      });
+
+      await applyTransactionBalance(tx, userId, {
+        accountId: nextAccountId,
+        toAccountId: nextToAccountId ?? null,
+        type: nextType,
+        amount: nextAmount,
+      });
+
       return transactionRepo.updateByIdAndUserIdTx(tx, {
         id: transactionId,
         userId,
         data: {
-          ...(input.category ? { category: input.category } : {}),
+          ...(typeof input.accountId !== "undefined" ? { accountId: input.accountId } : {}),
+          ...(typeof input.toAccountId !== "undefined" ? { toAccountId: input.toAccountId } : {}),
+          ...(typeof input.type !== "undefined" ? { type: input.type } : {}),
+          ...(typeof input.category !== "undefined" ? { category: input.category } : {}),
+          ...(typeof input.amount !== "undefined" ? { amount: input.amount } : {}),
           ...(typeof input.description !== "undefined"
             ? { description: input.description }
             : {}),
@@ -182,6 +356,12 @@ export const transactionService = {
 
       if (!existing) {
         throw new NotFoundError("Transaction not found");
+      }
+
+      if (existing.lobbyId) {
+        throw new ValidationAppError(
+          "Lobby-linked transfers must be managed from the lobby dashboard",
+        );
       }
 
       if (existing.type === "TRANSFER") {

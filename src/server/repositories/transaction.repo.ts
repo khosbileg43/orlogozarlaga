@@ -10,6 +10,12 @@ const transactionSelect = {
   date: true,
   accountId: true,
   toAccountId: true,
+  lobbyId: true,
+} as const;
+
+const transactionSelectWithUser = {
+  ...transactionSelect,
+  userId: true,
 } as const;
 
 export const transactionRepo = {
@@ -52,16 +58,24 @@ export const transactionRepo = {
     });
   },
 
+  findByIdTx(tx: Prisma.TransactionClient, transactionId: string) {
+    return tx.transaction.findUnique({
+      where: { id: transactionId },
+      select: transactionSelectWithUser,
+    });
+  },
+
   createTx(
     tx: Prisma.TransactionClient,
     data: {
       userId: string;
       accountId: string;
       toAccountId?: string;
+      lobbyId?: string;
       type: "INCOME" | "EXPENSE" | "TRANSFER";
       category: string;
       amount: number;
-      description?: string;
+      description?: string | null;
       date: Date;
     },
   ) {
@@ -77,7 +91,11 @@ export const transactionRepo = {
       id: string;
       userId: string;
       data: {
+        accountId?: string;
+        toAccountId?: string | null;
+        type?: "INCOME" | "EXPENSE" | "TRANSFER";
         category?: string;
+        amount?: number;
         description?: string | null;
         date?: Date;
       };

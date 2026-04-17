@@ -128,6 +128,17 @@ export function getCopy(language: LanguagePreference) {
       updateSelectedTransaction: "Update the selected shared-fund transaction.",
       recordNewTransaction:
         "Record a new income or expense against the lobby balance.",
+      transferFromPocket: "Transfer from My Pocket",
+      transferFromPocketDescription:
+        "Move money from one of your personal accounts into this lobby in one atomic transfer.",
+      sourceAccount: "Source account",
+      transferTargetMember: "Lobby member",
+      personalAccountRequired:
+        "Choose one of your personal accounts and transfer into your own lobby membership.",
+      loadingPocketAccounts: "Loading personal accounts...",
+      noPocketAccounts:
+        "You need at least one personal account with balance before transferring into a lobby.",
+      transferCompleted: "Transfer completed.",
       memberEmail: "Member email",
       userMustExist: "The user must already have an account in the app.",
       adding: "Adding...",
@@ -314,6 +325,17 @@ export function getCopy(language: LanguagePreference) {
     updateSelectedTransaction: "Сонгосон shared гүйлгээг шинэчилнэ.",
     recordNewTransaction:
       "Лоббиний үлдэгдэл дээр шинэ орлого эсвэл зарлага бүртгэнэ.",
+    transferFromPocket: "Миний хэтэвчээс шилжүүлэх",
+    transferFromPocketDescription:
+      "Өөрийн хувийн данснаас энэ лобби руу мөнгийг нэг атомик шилжүүлгээр нэмнэ.",
+    sourceAccount: "Эх данс",
+    transferTargetMember: "Лоббиний гишүүн",
+    personalAccountRequired:
+      "Өөрийн хувийн дансаа сонгоод, зөвхөн өөрийн лобби гишүүнчлэл рүү шилжүүлнэ.",
+    loadingPocketAccounts: "Хувийн дансууд ачаалж байна...",
+    noPocketAccounts:
+      "Лобби руу шилжүүлэхийн өмнө үлдэгдэлтэй дор хаяж нэг хувийн данс хэрэгтэй.",
+    transferCompleted: "Шилжүүлэг амжилттай.",
     memberEmail: "Гишүүний имэйл",
     userMustExist: "Тэр хэрэглэгч app дотор бүртгэлтэй байх ёстой.",
     adding: "Нэмж байна...",

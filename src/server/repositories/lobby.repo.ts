@@ -74,6 +74,15 @@ export const lobbyRepo = {
     });
   },
 
+  findByIdTx(tx: Prisma.TransactionClient, lobbyId: string) {
+    return tx.lobby.findUnique({
+      where: { id: lobbyId },
+      select: {
+        ...lobbyBaseSelect,
+      },
+    });
+  },
+
   createTx(
     tx: Prisma.TransactionClient,
     args: {
